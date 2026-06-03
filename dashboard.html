@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Operations Dashboard | Ledger Hub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-logo">JOHN BILLING SYSTEM</div>
+        <div class="nav-links">
+            <a href="#">Home</a>
+            <a href="#dashboard" class="active">Dashboard</a>
+            <a href="#support">Support Center</a>
+            <a href="#contact">Contact Center</a>
+        </div>
+    </nav>
+    <img src="1779395628337.png">
+
+    <div class="container">
+        <h1>Management Terminal & Dashboard</h1>
+        <p class="subtitle">Add dynamic itemizations, track internal cash logs, and process your fiscal KRA tax evaluations.</p>
+
+        <div class="workspace-split">
+            <div class="form-panel">
+                <h3>Transaction Metadata</h3>
+                <hr style="margin: 12px 0; border: 0; border-top: 1px solid #E2E8F0;">
+                <div class="input-group">
+                    <label>Customer Name</label>
+                    <input type="text" id="customer" placeholder="e.g. John Doe">
+                </div>
+                <div class="input-group">
+                    <label>Invoice Number</label>
+                    <input type="text" id="invoice" placeholder="e.g. 10245">
+                </div>
+                <div class="input-group">
+                    <label>Operating Cashier</label>
+                    <select id="cashier">
+                        <option value="Dr. Kabuthi (Founder)">Dr. Kabuthi</option>
+                        <option value="Admin Terminal 1">System Admin</option>
+                    </select>
+                </div>
+
+                <h3 style="margin-top: 25px;">Item Entry Details</h3>
+                <hr style="margin: 12px 0; border: 0; border-top: 1px solid #E2E8F0;">
+                <div class="input-group">
+                    <label>Item / Record Category</label>
+                    <select id="item">
+                        <option value="Store Inventory Asset Log">Store Inventory Record Entry</option>
+                        <option value="Monetary Transaction Ledger Item">Monetary Transaction Entry</option>
+                        <option value="Verified Delivery Note Asset">Delivery Note Registration</option>
+                        <option value="General Corporate Consulting Service">Consulting Services</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Unit Base Price (Ksh)</label>
+                    <input type="number" id="price" placeholder="0.00">
+                </div>
+                <div class="input-group">
+                    <label>Quantity</label>
+                    <input type="number" id="quantity" value="1" min="1">
+                </div>
+                <button type="button" class="btn" onclick="addItem()" style="background-color: #1A365D; margin-bottom: 12px;">Add Record Line</button>
+                <button type="button" class="btn" onclick="downloadPDF()">Download Compliant KRA PDF</button>
+            </div>
+
+            <div class="table-panel">
+                <h3>Live Ledger Streams</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Description Block</th>
+                            <th>Qty</th>
+                            <th>Unit Rate</th>
+                            <th>Net Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="billTable">
+                        </tbody>
+                </table>
+
+                <div class="tax-summary-box">
+                    <div class="tax-row">
+                        <span>Subtotal (Excl. VAT):</span>
+                        <span>Ksh <span id="subtotalValue">0.00</span></span>
+                    </div>
+                    <div class="tax-row">
+                        <span>KRA Statutory VAT (16%):</span>
+                        <span>Ksh <span id="vatValue">0.00</span></span>
+                    </div>
+                    <div class="tax-row grand-total">
+                        <span>Grand Gross Total:</span>
+                        <span>Ksh <span id="grandValue">0.00</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <button type="button" onclick="generateInvoiceLink()">Generate Invoice Asset</button>
+
+<div id="invoice-link-container" style="margin-top: 25px; display: none;">
+    <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; padding: 20px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+            <span style="font-size: 24px; margin-right: 10px;">📄</span>
+            <strong style="color: #1A365D; font-size: 16px;">Invoice Document Prepared Successfully</strong>
+            <p style="color: #64748B; font-size: 13px; margin: 5px 0 0 0;" id="invoice-link-meta"></p>
+        </div>
+        <a id="direct-download-btn" href="#" download class="btn-download-action" style="background-color: #1A365D; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 14px;">
+            Download PDF Link
+        </a>
+    </div>
+</div>
+
+    <footer class="footer-branding">
+        <div class="logo-stamp">JOHN BILLING <span>SYSTEM</span></div>
+        <div class="footer-tagline">&copy; 2026 John Billing System. Engineered by Dr. Kabuthi. All Rights Reserved.</div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
