@@ -269,6 +269,11 @@ def generate_pdf():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+    from flask import send_from_directory
+
+@app.route('/script.js')
+def serve_script():
+    return send_from_directory('.', 'script.js')
 
 
     
