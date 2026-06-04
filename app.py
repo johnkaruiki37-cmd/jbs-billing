@@ -11,6 +11,7 @@ import os
 app = Flask(__name__, template_folder='.', static_folder='.')
 CORS(app)
 bcrypt = Bcrypt(app)
+app.secret_key = 'jbs_secure_super_secret_key_2026'#Add this line!
 
 # SECURITY: Load from environment variable, not hardcoded
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev_key_change_in_production')

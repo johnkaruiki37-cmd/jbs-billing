@@ -27,12 +27,12 @@
         <form action="/login" method="POST" style="text-align: left;">
             <div style="margin-bottom: 18px;">
                 <label style="display: block; font-size: 12px; font-weight: 700; color: #1A365D; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Operator ID</label>
-                <input type="text" name="username" placeholder="Enter admin username" required style="width: 100%; padding: 12px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 14px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#1A365D'">
+                <input type="text" name="username" placeholder="Enter username" required style="width: 100%; padding: 12px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 14px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#1A365D'">
             </div>
 
             <div style="margin-bottom: 25px;">
                 <label style="display: block; font-size: 12px; font-weight: 700; color: #1A365D; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Security Passkey</label>
-                <input type="password" name="password" placeholder="••••••••" required style="width: 100%; padding: 12px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 14px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#1A365D'">
+                <input type="password" name="password" placeholder="Enter password" required style="width: 100%; padding: 12px; border: 1px solid #CBD5E1; border-radius: 6px; font-size: 14px; box-sizing: border-box; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#1A365D'">
             </div>
 
             <button type="submit" style="width: 100%; background-color: #1A365D; color: white; border: none; padding: 14px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#2A4365'" onmouseout="this.style.backgroundColor='#1A365D'">
@@ -58,8 +58,10 @@
     </div>
     
     <button type="submit" class="login-btn">Sign In</button>
+    <input type="submit" value="Sign In">
   </form>
 </div>
 
+    <script src="script.js"></script>
 </body>
 </html>
