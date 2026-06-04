@@ -205,3 +205,12 @@ document.getElementById('sendGmail').addEventListener('click', () => {
     // Opens user's desktop email client or web client with details filled out
     window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
 });
+function generateInvoiceLink() {
+    console.log("Generating invoice link...");
+    // Add your logic for creating an invoice link here
+}
+
+function downloadPDF() {
+    console.log("Downloading compliant KRA PDF...");
+    // Add your logic for compiling or downloading the PDF asset here
+}
