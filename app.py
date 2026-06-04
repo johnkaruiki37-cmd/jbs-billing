@@ -271,9 +271,18 @@ if __name__ == '__main__':
     app.run(debug=True, port=5000)
     from flask import send_from_directory
 
+
+import os
+from flask import send_from_directory
+
 @app.route('/script.js')
 def serve_script():
-    return send_from_directory('.', 'script.js')
-
+    # Dynamically find the absolute path of your root folder
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    return send_from_directory(root_dir, 'script.js')
+    @app.route('/style.css')
+def serve_css():
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    return send_from_directory(root_dir, 'style.css')
 
     
