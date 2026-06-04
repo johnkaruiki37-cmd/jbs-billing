@@ -60,9 +60,14 @@
                     <label>Quantity</label>
                     <input type="number" id="quantity" value="1" min="1">
                 </div>
-                <button type="button" class="btn" onclick="addItem()" style="background-color: #1A365D; margin-bottom: 12px;">Add Record Line</button>
-                <button type="button" class="btn" onclick="downloadPDF()">Download Compliant KRA PDF</button>
-            </div>
+                <div class="button-group" style="margin-top: 15px;">
+    <button type="button" onclick="addRecordLine()" style="background-color: #1A365D; color: white; padding: 8px 15px; border: none; cursor: pointer;">Add Record Line</button>
+    
+    <button type="button" onclick="downloadPDF()" style="background-color: #1A365D; color: white; padding: 8px 15px; border: none; cursor: pointer;">Download Compliant KRA PDF</button>
+    
+    <button type="button" onclick="generateInvoiceLink()" style="background-color: #1A365D; color: white; padding: 8px 15px; border: none; cursor: pointer;">Generate Invoice Asset</button>
+</div>
+                   </div>
 
             <div class="table-panel">
                 <h3>Live Ledger Streams</h3>
