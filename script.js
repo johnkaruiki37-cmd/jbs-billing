@@ -214,3 +214,7 @@ function downloadPDF() {
     console.log("Downloading compliant KRA PDF...");
     // Add your logic for compiling or downloading the PDF asset here
 }
+function addRecordLine() {
+    console.log("Adding a new record line item...");
+    // Add your logic here to insert a row into your ledger stream table
+}
