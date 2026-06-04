@@ -280,7 +280,8 @@ def serve_script():
     # Dynamically find the absolute path of your root folder
     root_dir = os.path.dirname(os.path.abspath(__file__))
     return send_from_directory(root_dir, 'script.js')
-    @app.route('/style.css')
+
+@app.route('/style.css')
 def serve_css():
     root_dir = os.path.dirname(os.path.abspath(__file__))
     return send_from_directory(root_dir, 'style.css')
