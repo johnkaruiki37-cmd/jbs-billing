@@ -78,9 +78,9 @@ def login_required(f):
 
 @app.route('/')
 def home():
-    """Landing page - redirect to dashboard if logged in"""
+    """Landing page - redirect to home if logged in"""
     if 'logged_in' in session:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('home'))
     return redirect(url_for('login_page'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -93,7 +93,7 @@ def login_page():
         if verify_login(username, password):
             session['logged_in'] = True
             session['username'] = username
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('home'))
         else:
             return render_template('login.html', error="Invalid credentials")
     
