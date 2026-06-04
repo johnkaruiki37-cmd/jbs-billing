@@ -145,7 +145,7 @@ def home():
         return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     # Grab input details securely from the form payload
     username = request.form.get('username')
@@ -187,7 +187,7 @@ def login():
         password = request.form.get('password')
         
         # 2. Add your login verification logic here...
-        # For example, if it's correct:
+        #if username == 'admin' and password =='bmd2026':
         session['logged_in'] = True
         return redirect(url_for('auth.dashboard'))     
     # If it's a GET request, just display the login page
