@@ -189,20 +189,7 @@ def login():
         # 2. Add your login verification logic here...
         # For example, if it's correct:
         session['logged_in'] = True
-        return redirect(url_for('auth.dashboard')) 
-        
-    # If it's a GET request, just display the login page@auth.route('/login', methods=['GET', 'POST']) # <-- Add methods here!
-def login():
-    if request.method == 'POST':
-        # 1. Grab data from the HTML form
-        username = request.form.get('username') 
-        password = request.form.get('password')
-        
-        # 2. Add your login verification logic here...
-        # For example, if it's correct:
-        session['logged_in'] = True
-        return redirect(url_for('auth.dashboard')) 
-        
+        return redirect(url_for('auth.dashboard'))     
     # If it's a GET request, just display the login page
     return render_template('login.html')
 import sqlite3
