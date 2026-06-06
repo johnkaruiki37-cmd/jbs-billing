@@ -98,7 +98,7 @@ def login_page():
         if verify_login(username, password):
             session['logged_in'] = True
             session['username'] = username
-            return redirect(url_for('home.html'))
+            return redirect(url_for('dashboard'))
         else:
             return render_template('login.html', error="Invalid credentials")
     
