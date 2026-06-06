@@ -90,18 +90,20 @@ def home():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
-    """Handle login form"""
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
-        
+
+        # Check credentials
         if verify_login(username, password):
             session['logged_in'] = True
             session['username'] = username
             return redirect(url_for('dashboard'))
         else:
+            # If login fails, stay on login.html and show an error
             return render_template('login.html', error="Invalid credentials")
-    
+            
+    # If it's a GET request, just show the login page
     return render_template('login.html')
 
 @app.route('/logout')
