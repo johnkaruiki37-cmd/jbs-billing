@@ -78,10 +78,15 @@ def login_required(f):
 
 @app.route('/')
 def home():
-    """Landing page - redirect to home.html if logged in"""
-    if 'logged_in' in session:
-        return redirect(url_for('home.html'))
-    return redirect(url_for('login_page'))
+    try:
+        # Pass session variables directly to protect the template evaluation
+        return render_template(
+            'home.html', 
+            logged_in=session.get('logged_in', False),
+            username=session.get('username', None)
+        )
+    except Exception as e:
+        return f"Template Render Error: {str(e)}", 500
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
