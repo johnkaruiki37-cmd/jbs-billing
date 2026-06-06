@@ -136,6 +136,14 @@ const removeFileBtn = document.getElementById('removeFileBtn');
 let selectedFile = null;
 
 // Trigger file browser when clicking the drop zone
+// Locate line 139 and modify the listener assignment safely
+const targetFormElement = document.getElementById('loginForm'); // or whatever ID is on line 139
+
+if (targetFormElement) {
+    targetFormElement.addEventListener('submit', function(e) {
+        // Your existing form logic stays right here
+    });
+}
 dropZone.addEventListener('click', () => fileInput.click());
 
 fileInput.addEventListener('change', (e) => {
