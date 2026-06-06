@@ -80,7 +80,7 @@ def login_required(f):
 def home():
     """Landing page - redirect to dashboard if logged in"""
     if 'logged_in' in session:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('home.html'))
     return redirect(url_for('login_page'))
 
 @app.route('/login', methods=['GET', 'POST'])
