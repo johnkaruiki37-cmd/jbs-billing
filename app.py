@@ -111,6 +111,12 @@ def logout():
     """Clear session and logout"""
     session.clear()
     return redirect(url_for('login_page'))
+    
+@app.route('/document')
+def document_page():
+    # Since everything sits independently in the root folder, 
+    # we render it directly from your flat workspace structure.
+    return render_template('document.html')
 
 @app.route('/dashboard')
 @login_required
