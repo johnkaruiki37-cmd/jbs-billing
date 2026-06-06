@@ -144,7 +144,15 @@ if (targetFormElement) {
         // Your existing form logic stays right here
     });
 }
-dropZone.addEventListener('click', () => fileInput.click());
+if (dropzone) {
+    dropzone.addEventListener('click', function() {
+        // Automatically click the hidden file input when the box is clicked
+        const fileInput = document.getElementById('file-input');
+        if (fileInput) {
+            fileInput.click();
+        }
+    });
+}
 
 fileInput.addEventListener('change', (e) => {
     if (e.target.files.length) handleFile(e.target.files[0]);
