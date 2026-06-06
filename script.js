@@ -144,6 +144,7 @@ if (targetFormElement) {
         // Your existing form logic stays right here
     });
 }
+// 2. Wrap it in a safety check so it only runs if the element exists on the page
 if (dropzone) {
     dropzone.addEventListener('click', function() {
         // Automatically click the hidden file input when the box is clicked
