@@ -111,7 +111,7 @@ def logout():
     """Clear session and logout"""
     session.clear()
     return redirect(url_for('login_page'))
-    
+
 @app.route('/document')
 def document_page():
     # Since everything sits independently in the root folder, 
