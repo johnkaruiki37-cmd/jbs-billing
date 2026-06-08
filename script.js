@@ -247,3 +247,27 @@ if (typeof Dropzone !== 'undefined') {
     // If the library isn't on this page, log it instead of crashing the script
     console.log("Dropzone library not detected on this page. Moving forward smoothly...");
 }
+
+// Optimized Instant Row Addition
+function addRecordLine() {
+    console.log("Adding a new record line item...");
+    
+    const tableBody = document.getElementById("invoice-table-body");
+    
+    // 1. Create the row template in memory
+    const newRow = document.createElement("tr");
+    newRow.className = "invoice-row";
+    newRow.innerHTML = `
+        <td><input type="text" class="item-desc" placeholder="Item Description"></td>
+        <td><input type="number" class="item-qty" value="1" oninput="calculateTotals()"></td>
+        <td><input type="number" class="item-price" value="0" oninput="calculateTotals()"></td>
+        <td class="item-total">0.00</td>
+        <td><button type="button" onclick="this.closest('tr').remove(); calculateTotals();">❌</button></td>
+    `;
+    
+    // 2. Append directly to the screen instantly (No server delay!)
+    tableBody.appendChild(newRow);
+    
+    // 3. Run totals calculation locally in the browser memory
+    calculateTotals();
+}
