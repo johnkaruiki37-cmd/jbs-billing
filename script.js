@@ -235,3 +235,18 @@ function addRecordLine() {
     console.log("Adding a new record line item...");
     // Add your logic here to insert a row into your ledger stream table
 }
+// Check if the dropzone upload element actually exists on the current page first
+const uploadForm = document.querySelector("#document-upload-form");
+
+if (uploadForm) {
+    // Notice the capital 'D' in New Dropzone
+    const myDropzone = new Dropzone("#document-upload-form", {
+        url: "/upload",
+        maxFilesize: 5
+    });
+    console.log("Dropzone initialized successfully.");
+} else {
+    console.log("No upload form found on this page. Skipping Dropzone setup.");
+}
+
+// Your existing logic for "Adding a new record line item..." continues safely down here!
