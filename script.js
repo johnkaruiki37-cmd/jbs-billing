@@ -271,3 +271,26 @@ function addRecordLine() {
     // 3. Run totals calculation locally in the browser memory
     calculateTotals();
 }
+function addRecordLine() {
+    console.log("Adding a new record line item...");
+    
+    const tableBody = document.getElementById("invoice-table-body");
+    
+    // Safety check: Only append if the table actually exists on this page layout
+    if (tableBody) {
+        const newRow = document.createElement("tr");
+        newRow.className = "invoice-row";
+        newRow.innerHTML = `
+            <td><input type="text" class="item-desc" placeholder="Item Description"></td>
+            <td><input type="number" class="item-qty" value="1" oninput="calculateTotals()"></td>
+            <td><input type="number" class="item-price" value="0" oninput="calculateTotals()"></td>
+            <td class="item-total">0.00</td>
+            <td><button type="button" onclick="this.closest('tr').remove(); calculateTotals();">❌</button></td>
+        `;
+        
+        tableBody.appendChild(newRow);
+        calculateTotals();
+    } else {
+        console.error("Could not find the target element with ID 'invoice-table-body' on this page!");
+    }
+}
