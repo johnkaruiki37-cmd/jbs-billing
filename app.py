@@ -122,14 +122,16 @@ def document_page():
     # Since everything sits independently in the root folder, 
     # we render it directly from your flat workspace structure.
     return render_template('document.html')
+# 2. FIX: Keep the explicit /dashboard route active to prevent manual typing errors
 @app.route('/dashboard')
 def serve_dashboard():
-    with open('dashboard.html', 'r', encoding='utf-8') as f:
-        return Response(f.read(), mimetype='text/html')
+    return redirect(url_for('home'))
 
+# 3. Your Dynamic PDF compiler route stays right here
 @app.route('/download-pdf', methods=['POST'])
 def download_pdf():
-    # ... your PDF generation code here ...
+    # ... (Your WeasyPrint memory buffer compilation code goes here) ...
+    pass
 
 
 @app.route('/contact')
