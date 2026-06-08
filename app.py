@@ -10,6 +10,8 @@ from reportlab.lib import colors
 import sqlite3
 import os
 import io
+import os
+from flask import send_from_directory
 from flask import send_file
 app = Flask(__name__, template_folder='.', static_folder='.')
 CORS(app)
@@ -288,8 +290,6 @@ if __name__ == '__main__':
     from flask import send_from_directory
 
 
-import os
-from flask import send_from_directory
 
 @app.route('/script.js')
 def serve_script():
