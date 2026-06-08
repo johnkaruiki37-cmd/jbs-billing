@@ -1,3 +1,5 @@
+import io
+
 from flask import Flask, request, send_file, render_template, redirect, url_for, session, jsonify
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
@@ -7,7 +9,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 import sqlite3
 import os
-
+import io
+from flask import send_file
 app = Flask(__name__, template_folder='.', static_folder='.')
 CORS(app)
 bcrypt = Bcrypt(app)
@@ -299,4 +302,25 @@ def serve_css():
     root_dir = os.path.dirname(os.path.abspath(__file__))
     return send_from_directory(root_dir, 'style.css')
 
+    import io
+from flask import send_file
+
+@app.route('/download-pdf', methods=['POST'])
+def download_pdf():
+    # ... your calculation logic here ...
     
+    # Create an in-memory file stream instead of saving a file to Render's slow disk
+    pdf_buffer = io.BytesIO()
+    
+    # Tell your PDF library (like ReportLab or FPDF) to write directly into the buffer
+    # example: pdf.output(pdf_buffer) or canvas.save()
+    
+    pdf_buffer.seek(0)
+    
+    # Send it instantly down the pipeline
+    return send_file(
+        pdf_buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name='KRA_Compliant_Invoice.pdf'
+    )
