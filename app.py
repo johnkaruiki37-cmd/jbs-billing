@@ -122,12 +122,15 @@ def document_page():
     # Since everything sits independently in the root folder, 
     # we render it directly from your flat workspace structure.
     return render_template('document.html')
-
 @app.route('/dashboard')
-@login_required
-def dashboard():
-    """Main billing dashboard"""
-    return render_template('dashboard.html')
+def serve_dashboard():
+    with open('dashboard.html', 'r', encoding='utf-8') as f:
+        return Response(f.read(), mimetype='text/html')
+
+@app.route('/download-pdf', methods=['POST'])
+def download_pdf():
+    # ... your PDF generation code here ...
+
 
 @app.route('/contact')
 def contact():
