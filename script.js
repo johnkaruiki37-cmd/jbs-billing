@@ -1,296 +1,104 @@
-let subtotal = 0;
+/**
+ * John's Billing System - Client Logic Controller
+ */
 
-function addItem() {
-    let item = document.getElementById("item").value;
-    let price = parseFloat(document.getElementById("price").value);
-    let quantity = parseInt(document.getElementById("quantity").value);
+function calculateTotals() {
+    const rows = document.querySelectorAll('.invoice-row');
+    let subtotal = 0;
 
-    if (item.trim() === "" || isNaN(price) || isNaN(quantity)) {
-        alert("Please enter valid item description, price, and quantity values.");
-        return;
-    }
+    rows.forEach(row => {
+        const qtyInput = row.querySelector('.item-qty');
+        const priceInput = row.querySelector('.item-price');
+        const totalContainer = row.querySelector('.item-total');
 
-    let total = price * quantity;
-    subtotal += total;
+        const qty = parseInt(qtyInput.value) || 0;
+        const price = parseFloat(priceInput.value) || 0;
+        const rowTotal = qty * price;
+        subtotal += rowTotal;
 
-    // Run tax calculation adjustments on UI
-    calculate();
-
-    let table = document.getElementById("billTable");
-    let rowHTML = `
-        <tr>
-            <td><b>${item}</b></td>
-            <td>${quantity}</td>
-            <td>Ksh ${price.toFixed(2)}</td>
-            <td>Ksh ${total.toFixed(2)}</td>
-        </tr>
-    `;
-    table.insertAdjacentHTML('beforeend', rowHTML);
-
-    // Clear item fields for next line entry
-    document.getElementById("item").value = "";
-    document.getElementById("price").value = "";
-    document.getElementById("quantity").value = "1";
-}
-
-function calculate() {
-    // Current 2026 Kenyan KRA Statutory VAT Ratio (16%)
-    let vat = subtotal * 0.16;
-    let grand = subtotal + vat;
-
-    if(document.getElementById("subtotalValue")) document.getElementById("subtotalValue").innerText = subtotal.toFixed(2);
-    if(document.getElementById("vatValue")) document.getElementById("vatValue").innerText = vat.toFixed(2);
-    if(document.getElementById("grandValue")) document.getElementById("grandValue").innerText = grand.toFixed(2);
-}
-
-async function downloadPDF() {
-    let grandText = document.getElementById("grandValue") ? document.getElementById("grandValue").innerText : "0.00";
-    
-    let data = {
-        customer: document.getElementById("customer").value || "Valued Client",
-        invoice: document.getElementById("invoice").value || "N/A",
-        total: grandText,
-        servedBy: document.getElementById("cashier") ? document.getElementById("cashier").value : "System Admin",
-        date: new Date().toLocaleDateString('en-GB'),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    try {
-        const response = await fetch("http://127.0.0.1:5000/generate-pdf", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data)
-        });
-
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `KRA_Invoice_${data.invoice}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-        } else {
-            alert("Error: Server was unable to compile the binary ReportLab target asset.");
-        }
-    } catch (error) {
-        console.error("Transmission Error:", error);
-        alert("Could not talk to the Flask backend terminal. Please double check that 'py app.py' is running!");
-    }
-}
-function generateInvoiceLink() {
-    let customerName = document.getElementById("customer").value || "Valued Client";
-    let invoiceNo = document.getElementById("invoice").value || "N/A";
-    let grandText = document.getElementById("grandTotalDisplay").innerText || "0";
-
-    let payload = {
-        customer: customerName,
-        invoice: invoiceNo,
-        total: grandText,
-        servedBy: "Admin",
-        date: new Date().toLocaleDateString('en-GB'),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    // Send data to our single-folder Flask backend
-    fetch('/generate-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    })
-    .then(response => {
-        if (!response.ok) throw new Error("Backend engine generation error");
-        return response.blob();
-    })
-    .then(blob => {
-        // Create a direct virtual object link to the file blob data
-        let fileUrl = window.URL.createObjectURL(blob);
-        
-        // Grab our HTML link elements
-        let container = document.getElementById("invoice-link-container");
-        let metaText = document.getElementById("invoice-link-meta");
-        let downloadBtn = document.getElementById("direct-download-btn");
-
-        // Inject the download target and file name attributes
-        downloadBtn.href = fileUrl;
-        downloadBtn.download = `Invoice_${invoiceNo}.pdf`;
-
-        // Update descriptions dynamically
-        metaText.innerText = `Invoice: #${invoiceNo} | Client: ${customerName} | Total: ${grandText}`;
-
-        // Make the link box display on screen cleanly
-        container.style.display = "block";
-    })
-    .catch(error => {
-        console.error("Link generation failure:", error);
-        alert("System encountered an issue linking the generated asset.");
+        // Render formatted local row calculations
+        totalContainer.textContent = rowTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     });
-}
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-const filePreview = document.getElementById('filePreview');
-const fileNameSpan = document.getElementById('fileName');
-const removeFileBtn = document.getElementById('removeFileBtn');
 
-let selectedFile = null;
+    // Compute aggregate tax objects
+    const vat = subtotal * 0.16;
+    const grandTotal = subtotal + vat;
 
-// Trigger file browser when clicking the drop zone
-// Locate line 139 and modify the listener assignment safely
-const targetFormElement = document.getElementById('loginForm'); // or whatever ID is on line 139
-
-if (targetFormElement) {
-    targetFormElement.addEventListener('submit', function(e) {
-        // Your existing form logic stays right here
-    });
-}
-// 2. Wrap it in a safety check so it only runs if the element exists on the page
-if (Dropzone) {
-    Dropzone.addEventListener('click', function() {
-        // Automatically click the hidden file input when the box is clicked
-        const fileInput = document.getElementById('file-input');
-        if (fileInput) {
-            fileInput.click();
-        }
-    });
+    // Inject state data parameters cleanly back to UI containers
+    document.getElementById('summary-subtotal').textContent = `KES ${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    document.getElementById('summary-vat').textContent = `KES ${vat.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    document.getElementById('summary-grand-total').textContent = `KES ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length) handleFile(e.target.files[0]);
-});
-
-// Drag and drop event listeners
-dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('drop-zone--over');
-});
-
-['dragleave', 'dragend'].forEach(type => {
-    dropZone.addEventListener(type, () => dropZone.classList.remove('drop-zone--over'));
-});
-
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('drop-zone--over');
-    if (e.dataTransfer.files.length) {
-        fileInput.files = e.dataTransfer.files;
-        handleFile(e.dataTransfer.files[0]);
-    }
-});
-
-function handleFile(file) {
-    selectedFile = file;
-    fileNameSpan.textContent = file.name;
-    filePreview.style.display = 'flex';
-}
-
-removeFileBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    selectedFile = null;
-    fileInput.value = '';
-    filePreview.style.display = 'none';
-});
-
-// --- DISPATCH CHANNELS ---
-
-// 1. WhatsApp Redirection API
-document.getElementById('sendWhatsApp').addEventListener('click', () => {
-    const phone = document.getElementById('whatsappNumber').value.trim();
-    if (!phone || phone === "254") {
-        alert("Please provide a valid WhatsApp number including your country code.");
-        return;
-    }
-    
-    // Note: Standard web links cannot attach physical files directly due to browser security.
-    // We send an optimized alert text prompting immediate follow-up.
-    const message = encodeURIComponent(`Hello, I am sending over the requested invoice document: *${selectedFile ? selectedFile.name : 'Invoice'}*. Please check your email or let me know if you would like me to upload it here.`);
-    
-    window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${message}`, '_blank');
-});
-
-// 2. Gmail Redirection Link Generator
-document.getElementById('sendGmail').addEventListener('click', () => {
-    const email = document.getElementById('emailAddress').value.trim();
-    if (!email) {
-        alert("Please enter a recipient email address.");
-        return;
-    }
-
-    const subject = encodeURIComponent("Logistics Invoice & Documentation");
-    const body = encodeURIComponent(`Greetings,\n\nPlease find attached the relevant logistics documentation: ${selectedFile ? selectedFile.name : 'Invoice'}.\n\nBest Regards,\nLogistics Team`);
-    
-    // Opens user's desktop email client or web client with details filled out
-    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
-});
-function generateInvoiceLink() {
-    console.log("Generating invoice link...");
-    // Add your logic for creating an invoice link here
-}
-
-function downloadPDF() {
-    console.log("Downloading compliant KRA PDF...");
-    // Add your logic for compiling or downloading the PDF asset here
-}
 function addRecordLine() {
     console.log("Adding a new record line item...");
-    // Add your logic here to insert a row into your ledger stream table
-}
-// Safe wrapper check for Dropzone
-if (typeof Dropzone !== 'undefined') {
-    // Notice the capital 'D' in new Dropzone
-    const myDropzone = new Dropzone("#document-upload-form", {
-        url: "/upload",
-        maxFilesize: 5
-    });
-    console.log("Dropzone loaded smoothly.");
-} else {
-    // If the library isn't on this page, log it instead of crashing the script
-    console.log("Dropzone library not detected on this page. Moving forward smoothly...");
-}
+    const tbody = document.getElementById('invoice-table-body');
+    
+    if (!tbody) {
+        console.error("Could not find the target element with ID 'invoice-table-body' on this page!");
+        return;
+    }
 
-// Optimized Instant Row Addition
-function addRecordLine() {
-    console.log("Adding a new record line item...");
-    
-    const tableBody = document.getElementById("invoice-table-body");
-    
-    // 1. Create the row template in memory
-    const newRow = document.createElement("tr");
-    newRow.className = "invoice-row";
-    newRow.innerHTML = `
-        <td><input type="text" class="item-desc" placeholder="Item Description"></td>
-        <td><input type="number" class="item-qty" value="1" oninput="calculateTotals()"></td>
-        <td><input type="number" class="item-price" value="0" oninput="calculateTotals()"></td>
-        <td class="item-total">0.00</td>
-        <td><button type="button" onclick="this.closest('tr').remove(); calculateTotals();">❌</button></td>
+    const row = document.createElement('tr');
+    row.className = 'invoice-row';
+    row.innerHTML = `
+        <td><input type="text" class="form-input item-desc" placeholder="Enter service description or product details..."></td>
+        <td><input type="number" class="form-input item-qty" value="1" style="text-align:center;" oninput="calculateTotals()"></td>
+        <td><input type="number" class="form-input item-price" value="0" style="text-align:right;" oninput="calculateTotals()"></td>
+        <td class="item-total" style="text-align: right; font-weight: 600;">0.00</td>
     `;
     
-    // 2. Append directly to the screen instantly (No server delay!)
-    tableBody.appendChild(newRow);
-    
-    // 3. Run totals calculation locally in the browser memory
+    tbody.appendChild(row);
     calculateTotals();
 }
-function addRecordLine() {
-    console.log("Adding a new record line item...");
+
+async function compileAndDownloadPDF() {
+    console.log("Downloading compliant KRA PDF...");
     
-    const tableBody = document.getElementById("invoice-table-body");
-    
-    // Safety check: Only append if the table actually exists on this page layout
-    if (tableBody) {
-        const newRow = document.createElement("tr");
-        newRow.className = "invoice-row";
-        newRow.innerHTML = `
-            <td><input type="text" class="item-desc" placeholder="Item Description"></td>
-            <td><input type="number" class="item-qty" value="1" oninput="calculateTotals()"></td>
-            <td><input type="number" class="item-price" value="0" oninput="calculateTotals()"></td>
-            <td class="item-total">0.00</td>
-            <td><button type="button" onclick="this.closest('tr').remove(); calculateTotals();">❌</button></td>
-        `;
+    const payload = {
+        client_name: document.getElementById('client-name').value,
+        client_pin: document.getElementById('client-pin').value,
+        invoice_no: document.getElementById('invoice-no').value,
+        due_date: document.getElementById('due-date').value,
+        items: []
+    };
+
+    const rows = document.querySelectorAll('.invoice-row');
+    rows.forEach(row => {
+        payload.items.push({
+            desc: row.querySelector('.item-desc').value,
+            qty: row.querySelector('.item-qty').value,
+            price: row.querySelector('.item-price').value
+        });
+    });
+
+    try {
+        const response = await fetch('/download-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server returned error status code: ${response.status}`);
+        }
+
+        // Process file payload stream down to disk download anchor
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${payload.invoice_no}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
         
-        tableBody.appendChild(newRow);
-        calculateTotals();
-    } else {
-        console.error("Could not find the target element with ID 'invoice-table-body' on this page!");
+    } catch (error) {
+        console.error("PDF engine failure:", error);
+        alert("Transmission dropped. Check that the python app backend console is running cleanly.");
     }
 }
+
+// Initial calculation call on load
+calculateTotals();
