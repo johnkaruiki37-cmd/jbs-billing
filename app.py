@@ -123,6 +123,20 @@ def document_page():
     # we render it directly from your flat workspace structure.
     return render_template('document.html')
 # 2. FIX: Keep the explicit /dashboard route active to prevent manual typing errors
+from flask import Flask, request, send_file, Response, redirect, url_for
+
+app = Flask(__name__, static_folder='.', static_url_path='')
+
+# 1. FIX: Force the base URL landing page to serve the dashboard directly
+@app.route('/')
+def home():
+    try:
+        with open('dashboard.html', 'r', encoding='utf-8') as f:
+            return Response(f.read(), mimetype='text/html')
+    except FileNotFoundError:
+        return "System Error: 'dashboard.html' missing from root workspace directory.", 404
+
+# 2. FIX: Keep the explicit /dashboard route active to prevent manual typing errors
 @app.route('/dashboard')
 def serve_dashboard():
     return redirect(url_for('home'))
@@ -132,8 +146,6 @@ def serve_dashboard():
 def download_pdf():
     # ... (Your WeasyPrint memory buffer compilation code goes here) ...
     pass
-
-
 @app.route('/contact')
 def contact():
     """Contact page"""
