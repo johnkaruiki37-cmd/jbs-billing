@@ -308,71 +308,48 @@ if __name__ == '__main__':
 
 
 
-@app.route('/script.js')
-def serve_script():
-    # Dynamically find the absolute path of your root folder
-    root_dir = os.path.dirname(os.path.abspath(__file__))
-    return send_from_directory(root_dir, 'script.js')
+import io
+import os
+from flask import Flask, request, send_file, Response, redirect, url_for
 
-@app.route('/style.css')
-def serve_css():
-    root_dir = os.path.dirname(os.path.abspath(__file__))
-    return send_from_directory(root_dir, 'style.css')
+# Track the project directory dynamically so Render never gets confused
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
-    import io
-from flask import send_file
+app = Flask(__name__, static_folder=BASE_DIR, static_url_path='')
 
-@app.route('/download-pdf', methods=['POST'])
-def download_pdf():
-    # ... your calculation logic here ...
-    
-    # Create an in-memory file stream instead of saving a file to Render's slow disk
-    pdf_buffer = io.BytesIO()
-    
-    # Tell your PDF library (like ReportLab or FPDF) to write directly into the buffer
-    # example: pdf.output(pdf_buffer) or canvas.save()
-    
-    pdf_buffer.seek(0)
-    
-    # Send it instantly down the pipeline
-    return send_file(
-        pdf_buffer,
-        mimetype='application/pdf',
-        as_attachment=True,
-        download_name='KRA_Compliant_Invoice.pdf'
-    )
-    import io
-from flask import Flask, request, send_file, Response
-
-app = Flask(__name__, static_folder='.', static_url_path='')
+@app.route('/')
+def home():
+    try:
+        # Serving home.html dynamically out of the workspace root path
+        html_path = os.path.join(BASE_DIR, 'home.html')
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return Response(f.read(), mimetype='text/html')
+    except FileNotFoundError:
+        return f"System Maintenance Error: 'home.html' was not found at path: {html_path}", 404
 
 @app.route('/dashboard')
 def serve_dashboard():
-    with open('dashboard.html', 'r', encoding='utf-8') as f:
-        return Response(f.read(), mimetype='text/html')
+    return redirect(url_for('home'))
 
 @app.route('/download-pdf', methods=['POST'])
 def download_pdf():
-    # 1. Capture payload data sent from the dashboard
     data = request.get_json() or {}
     
-    client_name = data.get('client_name', 'Valued Client')
-    client_pin = data.get('client_pin', 'N/A')
-    invoice_no = data.get('invoice_no', 'JBS-TEMP')
-    due_date = data.get('due_date', 'N/A')
+    client_name = data.get('client_name', 'Savannah Rangers & Outpost Ltd')
+    client_pin = data.get('client_pin', 'P011987654X')
+    invoice_no = data.get('invoice_no', 'JBS-2026-0089')
+    due_date = data.get('due_date', '2026-06-22')
     
-    # 2. Re-calculate financial sums cleanly on the server backend
     subtotal = 0
     table_rows_html = ""
     
     for item in data.get('items', []):
-        desc = item.get('desc', 'Service Rendered')
+        desc = item.get('desc', 'Service Item Line')
         qty = int(item.get('qty', 1) or 1)
         price = float(item.get('price', 0) or 0)
         total_row_price = qty * price
         subtotal += total_row_price
         
-        # Build individual tabular rows dynamically
         table_rows_html += f"""
         <tr>
             <td><strong>{desc}</strong></td>
@@ -384,7 +361,6 @@ def download_pdf():
     vat = subtotal * 0.16
     grand_total = subtotal + vat
 
-    # 3. Inject the dynamic fields directly into your layout template string
     html_template = f"""
     <!DOCTYPE html>
     <html>
@@ -457,9 +433,7 @@ def download_pdf():
             <div class="meta-left">
                 <h3 class="section-heading">Billed To:</h3>
                 <div class="client-name">{client_name}</div>
-                <div class="client-details">
-                    PIN: {client_pin}
-                </div>
+                <div class="client-details">PIN: {client_pin}</div>
             </div>
             <div class="meta-right">
                 <h3 class="section-heading">Invoice Details:</h3>
@@ -489,7 +463,7 @@ def download_pdf():
                 <div class="payment-panel">
                     <div class="mpesa-header">Lipa Na M-Pesa</div>
                     <div><strong>Business Till No:</strong> 5928103</div>
-                    <div style="margin-top: 3px;"><strong>Account No:</strong> JBS-0089</div>
+                    <div><strong>Account No:</strong> {invoice_no}</div>
                 </div>
             </div>
             <div class="totals-cell">
@@ -515,7 +489,6 @@ def download_pdf():
     </html>
     """
     
-    # 4. Stream via WeasyPrint directly from server RAM buffers
     from weasyprint import HTML
     pdf_buffer = io.BytesIO()
     HTML(string=html_template).write_pdf(pdf_buffer)
