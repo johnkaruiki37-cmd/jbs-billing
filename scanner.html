@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JBS - High-Performance Hardware Scanner Console</title>
+    <link rel="stylesheet" href="shared.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/al
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        :root {
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glow-green: #10b981;
+            --glow-gold: #d4af37;
+        }
+
+        .jbs-grid-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 968px) {
+            .jbs-grid-layout { grid-template-columns: 1fr; }
+        }
+
+        /* Glassmorphism Cards */
+        .jbs-glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Analytics Metric Badges */
+        .jbs-stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-badge {
+            background: rgba(15, 23, 42, 0.6);
+            border-left: 4px solid var(--accent-gold);
+            padding: 1rem;
+            border-radius: 6px;
+        }
+
+        /* Video Interactive Layout */
+        .camera-container {
+            width: 100%;
+            background: #020617;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--glass-border);
+            aspect-ratio: 4/3;
+        }
+
+        #interactive-video-feed {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover;
+        }
+
+        /* Target Reticle Animation Overlay */
+        .scanner-laser-overlay {
+            position: absolute;
+            top: 15%; left: 15%; right: 15%; bottom: 15%;
+            border: 2px dashed rgba(212, 175, 55, 0.4);
+            border-radius: 8px;
+            pointer-events: none;
+            box-shadow: 0 0 0 2000px rgba(2, 6, 23, 0.4);
+        }
+
+        .scanner-laser-overlay::after {
+            content: '';
+            position: absolute;
+            width: 100%; height: 3px;
+            background: linear-gradient(to right, transparent, var(--glow-gold), transparent);
+            box-shadow: 0 0 12px var(--glow-gold);
+            top: 0;
+            animation: scanMotion 2.5s infinite linear;
+        }
+
+        @keyframes scanMotion {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+
+        .hardware-pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+        }
+    </style>
+</head>
+<body>
+   <div class="jbs-canvas-backdrop"><div class="jbs-wave-layer"></div></div>
+    <div class="jbs-app-wrapper">
+        <aside class="jbs-fixed-sidebar glass-panel" id="sidebar">
+            <div class="jbs-sidebar-header-wrapper">
+                <div class="jbs-navbar-brand-block">
+                    <i class="fa-solid fa-shield-halved jbs-brand-logo"></i>
+                    <span class="jbs-profile-name-string" style="font-weight:700;">JBS TERMINAL</span>
+                </div>
+            </div>
+            <nav class="jbs-sidebar-menu-list">
+                <a href="index.html" class="jbs-menu-nav-item"><i class="fa-solid fa-house"></i><span class="jbs-menu-text-label">Home Landing</span></a>
+                <a href="dashboard.html" class="jbs-menu-nav-item"><i class="fa-solid fa-chart-pie"></i><span class="jbs-menu-text-label">Admin Dashboard</span></a>
+                <a href="billing.html" class="jbs-menu-nav-item"><i class="fa-solid fa-file-invoice-dollar"></i><span class="jbs-menu-text-label">Billing & Invoices</span></a>
+                <a href="inventory.html" class="jbs-menu-nav-item"><i class="fa-solid fa-boxes-stacked"></i><span class="jbs-menu-text-label">Inventory Control</span></a>
+                <a href="scanner.html" class="jbs-menu-nav-item active-page-node"><i class="fa-solid fa-barcode"></i><span class="jbs-menu-text-label">Barcode Scanner</span></a>
+                <a href="mpesa.html" class="jbs-menu-nav-item"><i class="fa-solid fa-wallet"></i><span class="jbs-menu-text-label">M-Pesa Ledger</span></a>
+                <a href="forum.html" class="jbs-menu-nav-item"><i class="fa-solid fa-users"></i><span class="jbs-menu-text-label">Business Forum</span></a>
+                <a href="about.html" class="jbs-menu-nav-item"><i class="fa-solid fa-circle-info"></i><span class="jbs-menu-text-label">About System</span></a>
+            </nav>
+        </aside>
+   
+    
+
+    <main class="jbs-main-container">
+        <div class="jbs-stats-bar">
+            <div class="stat-badge">
+                <div style="font-size: 0.8rem; color: var(--text-muted);">TOTAL SYSTEM PRODUCTS</div>
+                <div id="stat-total-products" style="font-size: 1.6rem; font-weight: bold; color: #fff;">--</div>
+            </div>
+            <div class="stat-badge" style="border-left-color: var(--accent-green);">
+                <div style="font-size: 0.8rem; color: var(--text-muted);">SCANNED TODAY</div>
+                <div id="stat-scanned-today" style="font-size: 1.6rem; font-weight: bold; color: var(--accent-green);">--</div>
+            </div>
+            <div class="stat-badge" style="border-left-color: #ef4444;">
+                <div style="font-size: 0.8rem; color: var(--text-muted);">LOW STOCK ALERTS</div>
+                <div id="stat-low-stock" style="font-size: 1.6rem; font-weight: bold; color: #ef4444;">--</div>
+            </div>
+            <div class="stat-badge">
+                <div style="font-size: 0.8rem; color: var(--text-muted);">TOTAL VAULT VALUE</div>
+                <div id="stat-total-value" style="font-size: 1.6rem; font-weight: bold; color: var(--accent-gold);">--</div>
+            </div>
+        </div>
+
+        <div class="jbs-grid-layout">
+            <div class="jbs-glass-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0;">Live Optical Target Window</h3>
+                    <div id="network-pill" class="hardware-pill">System Online</div>
+                </div>
+
+                <div class="camera-container">
+                    <div id="interactive-video-feed"></div>
+                    <div class="scanner-laser-overlay"></div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap;">
+                    <button id="btn-toggle-camera" class="jbs-btn-primary" style="background: #3b82f6; color: white;">Switch Optics Input</button>
+                    <button id="btn-toggle-torch" class="jbs-btn-primary" style="background: #475569; color: white;">Toggle Flashlight</button>
+                    <button id="btn-export-pdf" class="jbs-btn-primary" style="background: #b91c1c; color: white; margin-left: auto;">Export PDF</button>
+                </div>
+            </div>
+
+            <div class="jbs-glass-card" style="display: flex; flex-direction: column; gap: 1rem;">
+                <h3>Active Code Inspector</h3>
+                
+                <div id="preview-card" style="background: rgba(15, 23, 42, 0.5); padding: 1rem; border-radius: 8px; border: 1px solid var(--glass-border); min-height: 120px;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Awaiting Live Code Signal...</span>
+                    <div id="preview-content" style="margin-top: 0.5rem; display: none;">
+                        <div id="preview-name" style="font-weight: bold; font-size: 1.1rem; color: var(--accent-green);"></div>
+                        <div id="preview-sku" style="font-family: monospace; font-size: 0.85rem; margin: 4px 0;"></div>
+                        <div id="preview-qty" style="font-size: 0.9rem; margin-top: 0.5rem;"></div>
+                    </div>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 0.5rem 0;">
+
+                <h4>Manual Pipeline Injection</h4>
+                <form id="manual-injection-form">
+                    <div class="jbs-form-group">
+                        <label>Alphanumeric Code Asset Key</label>
+                        <input type="text" id="manual-code-input" class="jbs-input-control" placeholder="Type target SKU, barcode, or serial reference..." required>
+                    </div>
+                    <button type="submit" class="jbs-btn-primary" style="width: 100%;">Process Token Key</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="jbs-glass-card" style="margin-top: 1.5rem;">
+            <h3>Session Capture Manifest Summary</h3>
+            <div style="width: 100%; overflow-x: auto;">
+                <table class="jbs-table" id="session-scans-table">
+                    <thead>
+                        <tr>
+                            <th>Code Asset Reference</th>
+                            <th>Timestamp</th>
+                            <th>Identified Asset Name</th>
+                            <th>Category</th>
+                            <th>Stock Level Status</th>
+                            <th>Pipeline Mode</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No scan transactions processed during this layout session.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <audio id="audio-scan-beep" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav" preload="auto"></audio>
+
+    <script>
+        let html5QrcodeScanner = null;
+        let activeCameraId = null;
+        let availableCameras = [];
+        let currentFacingMode = "environment";
+        let lastProcessedCode = null;
+        let codeThrottleTimeout = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeScannerEngine();
+            syncDashboardStats();
+            setupNetworkListeners();
+            
+            document.getElementById('manual-injection-form').addEventListener('submit', handleManualEntry);
+            document.getElementById('btn-toggle-camera').addEventListener('click', toggleCameraOptics);
+            document.getElementById('btn-toggle-torch').addEventListener('click', toggleFlashlightTorch);
+            document.getElementById('btn-export-pdf').addEventListener('click', () => window.location.href = '/api/inventory-data?export=pdf');
+        });
+
+        function setupNetworkListeners() {
+            window.addEventListener('online', processOfflineCacheQueue);
+            window.addEventListener('offline', () => {
+                const pill = document.getElementById('network-pill');
+                pill.innerText = "Offline Cache Mode";
+                pill.style.background = "rgba(239, 68, 68, 0.15)";
+                pill.style.color = "#ef4444";
+            });
+        }
+
+        // Initialize Native Hardware Optics Scanner Matrix
+        async function initializeScannerEngine() {
+            try {
+                availableCameras = await Html5Qrcode.getCameras();
+                if (availableCameras && availableCameras.length > 0) {
+                    activeCameraId = availableCameras[0].id;
+                    startStreamingCamera(currentFacingMode);
+                } else {
+                    displayOverlayMessage("No integrated hardware optics channels discovered.");
+                }
+            } catch (err) {
+                console.error("Camera resolution failed.", err);
+                displayOverlayMessage("Optics permissions denied or unavailable.");
+            }
+        }
+
+        function startStreamingCamera(facingOrId) {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => loadScannerInstance(facingOrId));
+            } else {
+                loadScannerInstance(facingOrId);
+            }
+        }
+
+        function loadScannerInstance(facingOrId) {
+            html5QrcodeScanner = new Html5Qrcode("interactive-video-feed");
+            const config = { fps: 20, qrbox: (width, height) => ({ width: width * 0.7, height: height * 0.7 }) };
+            const targetConstraint = typeof facingOrId === 'string' && facingOrId.length > 20 ? facingOrId : { facingMode: currentFacingMode };
+
+            html5QrcodeScanner.start(
+                targetConstraint, 
+                config, 
+                (decodedText) => handleCapturedCodeSignal(decodedText, "Optical Scanner"),
+                () => {} // Silent catch framework for frames matching no target markers
+            ).catch(err => console.log("Stream initialize failed.", err));
+        }
+
+        function toggleCameraOptics() {
+            if (availableCameras.length > 1) {
+                const currentIndex = availableCameras.findIndex(c => c.id === activeCameraId);
+                const nextIndex = (currentIndex + 1) % availableCameras.length;
+                activeCameraId = availableCameras[nextIndex].id;
+                startStreamingCamera(activeCameraId);
+            } else {
+                currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+                startStreamingCamera(currentFacingMode);
+            }
+        }
+
+        function toggleFlashlightTorch() {
+            if (html5QrcodeScanner && html5QrcodeScanner.isScanning) {
+                const features = html5QrcodeScanner.getRunningTrackCapabilities();
+                if (features.torch) {
+                    const settings = html5QrcodeScanner.getRunningTrackSettings();
+                    html5QrcodeScanner.applyVideoTrackConstraints({
+                        advanced: [{ torch: !settings.torch }]
+                    });
+                } else {
+                    alert("Flashlight toggle not supported by current target device optics.");
+                }
+            }
+        }
+
+        // Central Signal Router
+        function handleCapturedCodeSignal(codeText, captureMethod) {
+            if (codeText === lastProcessedCode) return; // Prevent duplicate multi-frame scans
+            
+            lastProcessedCode = codeText;
+            clearTimeout(codeThrottleTimeout);
+            codeThrottleTimeout = setTimeout(() => { lastProcessedCode = null; }, 3500); // Reset latch lock after 3.5s
+
+            document.getElementById('audio-scan-beep').play().catch(() => {});
+            
+            if (!navigator.onLine) {
+                cacheTransactionOffline(codeText, captureMethod);
+                return;
+            }
+
+            transmitCodePayload(codeText, captureMethod);
+        }
+
+        async function transmitCodePayload(codeText, method) {
+            try {
+                const res = await fetch('/scan-product', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: codeText, method: method })
+                });
+                
+                const out = await res.json();
+                if (res.ok) {
+                    renderProductInspectorCard(out.product);
+                    appendRowToAuditTable(out.product, method, out.timestamp);
+                    syncDashboardStats();
+                } else {
+                    alert(`Registry Alert: ${out.message}`);
+                }
+            } catch (err) {
+                console.error("Network communication failure.", err);
+                cacheTransactionOffline(codeText, method);
+            }
+        }
+
+        function handleManualEntry(e) {
+            e.preventDefault();
+            const inputField = document.getElementById('manual-code-input');
+            handleCapturedCodeSignal(inputField.value.trim(), "Manual Injection Line");
+            inputField.value = "";
+        }
+
+        function cacheTransactionOffline(code, method) {
+            let queue = JSON.parse(localStorage.getItem('jbs_offline_scans') || '[]');
+            queue.push({ code: code, method: method, timestamp: new Date().toISOString() });
+            localStorage.setItem('jbs_offline_scans', JSON.stringify(queue));
+            
+            // Render basic UI confirmation for local storage cache
+            document.getElementById('preview-card').innerHTML = `
+                <span class="hardware-pill" style="background:rgba(212,175,55,0.2);color:var(--accent-gold)">Cached Offline</span>
+                <div style="font-family:monospace; margin-top:0.5rem; color:#fff;">${code}</div>
+            `;
+        }
+
+        async function processOfflineCacheQueue() {
+            const pill = document.getElementById('network-pill');
+            pill.innerText = "Synchronizing Cache...";
+            pill.style.background = "rgba(52,211,153,0.15)";
+            pill.style.color = "var(--accent-green)";
+
+            let queue = JSON.parse(localStorage.getItem('jbs_offline_scans') || '[]');
+            if (!queue.length) {
+                pill.innerText = "System Online";
+                return;
+            }
+
+            for (const item of queue) {
+                await transmitCodePayload(item.code, `${item.method} (Offline Sync)`);
+            }
+
+            localStorage.removeItem('jbs_offline_scans');
+            pill.innerText = "System Online";
+            syncDashboardStats();
+        }
+
+        function renderProductInspectorCard(product) {
+            document.getElementById('preview-content').style.display = 'block';
+            document.getElementById('preview-name').innerText = product.name;
+            document.getElementById('preview-sku').innerText = `SKU/BARCODE: ${product.barcode}`;
+            document.getElementById('preview-qty').innerHTML = `Current Vault Inventory Balance: <strong style="color:var(--accent-gold);">${product.qty} units</strong><br><span style="font-size:0.8rem;color:var(--text-muted)">Supplier: ${product.supplier}</span>`;
+        }
+
+        function appendRowToAuditTable(product, method, timestamp) {
+            const tableBody = document.querySelector('#session-scans-table tbody');
+            if (tableBody.rows[0] && tableBody.rows[0].cells.length === 1) tableBody.innerHTML = ''; // Clear fallback default text row
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><code>${product.barcode}</code></td>
+                <td>${timestamp}</td>
+                <td>${product.name}</td>
+                <td>${product.category}</td>
+                <td><strong style="color:var(--accent-green);">${product.qty} units</strong></td>
+                <td><span style="font-size:0.8rem; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:4px;">${method}</span></td>
+            `;
+            tableBody.insertBefore(row, tableBody.firstChild);
+        }
+
+        async function syncDashboardStats() {
+            try {
+                const res = await fetch('/inventory-data');
+                const metrics = await res.json();
+                
+                document.getElementById('stat-total-products').innerText = metrics.total_products;
+                document.getElementById('stat-scanned-today').innerText = metrics.scanned_today;
+                document.getElementById('stat-low-stock').innerText = metrics.low_stock_count;
+                document.getElementById('stat-total-value').innerText = `Ksh ${metrics.total_value.toLocaleString()}`;
+            } catch(e) {}
+        }
+
+        function displayOverlayMessage(msg) {
+            document.getElementById('interactive-video-feed').innerHTML = `
+                <div style="display:flex; height:100%; width:100%; align-items:center; justify-content:center; padding:2rem; text-align:center; color:var(--text-muted); font-size:0.9rem;">
+                    ${msg}
+                </div>
+            `;
+            document.querySelector('.scanner-laser-overlay').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

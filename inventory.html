@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JBS - Real-Time Inventory Control</title>
+    <link rel="stylesheet" href="shared.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-blue: #38bdf8;
+            --accent-green: #10b981;
+            --alert-orange: #f59e0b;
+            --alert-red: #ef4444;
+        }
+
+        .inventory-layout {
+            display: grid;
+            grid-template-columns: 2.2fr 0.8fr;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 1200px) {
+            .inventory-layout { grid-template-columns: 1fr; }
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+        }
+
+        .stats-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: rgba(15, 23, 42, 0.6);
+            border-left: 4px solid var(--accent-blue);
+            padding: 1.25rem;
+            border-radius: 8px;
+        }
+
+        .search-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .search-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Modal Overlay Canvas Sheets styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Controls Panel Configuration Utilities */
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(15, 23, 42, 0.4);
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-normal { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
+        .badge-low { background: rgba(245, 158, 11, 0.15); color: var(--alert-orange); }
+        .badge-out { background: rgba(239, 68, 68, 0.15); color: var(--alert-red); }
+    </style>
+</head>
+<body>
+     <div class="jbs-canvas-backdrop"><div class="jbs-wave-layer"></div></div>
+    <div class="jbs-app-wrapper">
+        <aside class="jbs-fixed-sidebar glass-panel" id="sidebar">
+            <div class="jbs-sidebar-header-wrapper">
+                <div class="jbs-navbar-brand-block">
+                    <i class="fa-solid fa-shield-halved jbs-brand-logo"></i>
+                    <span class="jbs-profile-name-string" style="font-weight:700;">JBS TERMINAL</span>
+                </div>
+            </div>
+            <nav class="jbs-sidebar-menu-list">
+                <a href="index.html" class="jbs-menu-nav-item"><i class="fa-solid fa-house"></i><span class="jbs-menu-text-label">Home Landing</span></a>
+                <a href="dashboard.html" class="jbs-menu-nav-item"><i class="fa-solid fa-chart-pie"></i><span class="jbs-menu-text-label">Admin Dashboard</span></a>
+                <a href="billing.html" class="jbs-menu-nav-item"><i class="fa-solid fa-file-invoice-dollar"></i><span class="jbs-menu-text-label">Billing & Invoices</span></a>
+                <a href="inventory.html" class="jbs-menu-nav-item"><i class="fa-solid fa-boxes-stacked"></i><span class="jbs-menu-text-label">Inventory Control</span></a>
+                <a href="scanner.html" class="jbs-menu-nav-item active-page-node"><i class="fa-solid fa-barcode"></i><span class="jbs-menu-text-label">Barcode Scanner</span></a>
+                <a href="mpesa.html" class="jbs-menu-nav-item"><i class="fa-solid fa-wallet"></i><span class="jbs-menu-text-label">M-Pesa Ledger</span></a>
+                <a href="forum.html" class="jbs-menu-nav-item"><i class="fa-solid fa-users"></i><span class="jbs-menu-text-label">Business Forum</span></a>
+                <a href="about.html" class="jbs-menu-nav-item"><i class="fa-solid fa-circle-info"></i><span class="jbs-menu-text-label">About System</span></a>
+            </nav>
+        </aside>
+    <main class="jbs-main-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="audio-controls">
+                <i class="fa-solid fa-volume-high" style="color: var(--accent-blue);"></i>
+                <label style="font-size: 0.8rem; color: #94a3b8;">Vocal Notifications Engine:</label>
+                <input type="checkbox" id="audio-toggle" checked style="cursor: pointer;">
+                <input type="range" id="audio-volume" min="0" max="1" step="0.1" value="0.8" style="width: 80px; height: 4px; cursor: pointer;">
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+                <button class="jbs-btn-primary" onclick="openProductFormModal()"><i class="fa-solid fa-plus-square"></i> Manual Intake Entry</button>
+                <button class="jbs-btn-primary" style="background: #16a34a;" onclick="exportInventoryToCSV()"><i class="fa-solid fa-file-csv"></i> Download CSV Ledger</button>
+            </div>
+        </div>
+
+        <div class="stats-strip">
+            <div class="stat-card" style="border-left-color: var(--accent-blue);">
+                <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Stock Variants</div>
+                <div id="stat-total-products" style="font-size: 1.5rem; font-weight: bold; margin-top: 4px;">0</div>
+            </div>
+            <div class="stat-card" style="border-left-color: var(--accent-green);">
+                <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Aggregated Holdings</div>
+                <div id="stat-total-units" style="font-size: 1.5rem; font-weight: bold; margin-top: 4px;">0</div>
+            </div>
+            <div class="stat-card" style="border-left-color: #eab308;">
+                <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Asset Sheet Valuation</div>
+                <div id="stat-total-value" style="font-size: 1.5rem; font-weight: bold; margin-top: 4px; color: var(--accent-green);">Ksh 0.00</div>
+            </div>
+            <div class="stat-card" style="border-left-color: var(--alert-red);">
+                <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Depleted / Low Stock Warnings</div>
+                <div id="stat-low-stock" style="font-size: 1.5rem; font-weight: bold; margin-top: 4px; color: var(--alert-red);">0</div>
+            </div>
+        </div>
+
+        <div class="inventory-layout">
+            <div class="glass-panel">
+                <div class="search-grid">
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <i class="fa-solid fa-barcode" style="position: absolute; left: 12px; color: #64748b;"></i>
+                        <input type="text" id="inv-search" class="jbs-input-control" placeholder="Query by product label descriptor, barcode hash string, or unique item serial code..." style="padding-left: 36px; margin-bottom: 0;" oninput="renderInventoryDataGrid()">
+                    </div>
+                    <div>
+                        <select id="filter-category" class="jbs-input-control" style="margin-bottom: 0;" onchange="renderInventoryDataGrid()">
+                            <option value="ALL">All Categories</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="filter-stock-state" class="jbs-input-control" style="margin-bottom: 0;" onchange="renderInventoryDataGrid()">
+                            <option value="ALL">All Status Levels</option>
+                            <option value="NORMAL">Normal Holdings (&gt;15)</option>
+                            <option value="LOW">Low Stock Warnings (&le;15)</option>
+                            <option value="OUT">Depleted Asset Reserves (0)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="jbs-table">
+                        <thead>
+                            <tr>
+                                <th>Asset SKU Code</th>
+                                <th>Label Descriptor</th>
+                                <th>Category</th>
+                                <th>In-Stock Qty</th>
+                                <th>Wholesale Cost</th>
+                                <th>Retail Price</th>
+                                <th>Asset Value</th>
+                                <th>Status Badge</th>
+                                <th style="text-align: center;">Controls Matrix</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-tbody-target">
+                            <tr><td colspan="9" style="text-align: center; padding: 3rem; color: #64748b;">Initializing real-time stream links pipeline...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="glass-panel" style="display: flex; flex-direction: column;">
+                <h3 style="margin-top: 0; font-size: 1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;"><i class="fa-solid fa-clock-rotate-left"></i> Real-Time Telemetry Audit Logs</h3>
+                <div id="telemetry-logs-container" style="flex: 1; max-height: 480px; overflow-y: auto; font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                    </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="product-modal" class="modal-overlay">
+        <div class="glass-panel" style="width: 100%; max-width: 500px; background: #1e293b;">
+            <h3 id="modal-title-context" style="margin-top: 0; margin-bottom: 1rem; color: var(--accent-blue);">Intake New Product Profile Record</h3>
+            <form id="product-mutation-form" onsubmit="executeFormSubmissionRequest(event)">
+                <input type="hidden" id="form-action-mode" value="CREATE">
+                
+                <div class="jbs-form-group">
+                    <label>Barcode ID String / Hardware Tag</label>
+                    <input type="text" id="field-barcode" class="jbs-input-control" placeholder="e.g. 61940182410" required>
+                </div>
+                <div class="jbs-form-group">
+                    <label>Product Label Descriptor</label>
+                    <input type="text" id="field-name" class="jbs-input-control" placeholder="e.g. Paracetamol Extra 500mg Packs" required>
+                </div>
+                <div class="jbs-form-group">
+                    <label>Serial Number Tracking Token</label>
+                    <input type="text" id="field-serial" class="jbs-input-control" placeholder="e.g. SN-PRC-4021" required>
+                </div>
+                <div class="jbs-form-group">
+                    <label>Category Grouping Profile</label>
+                    <input type="text" id="field-category" class="jbs-input-control" placeholder="e.g. Pharmacy / Livestock Medical" required>
+                </div>
+                <div class="jbs-form-group">
+                    <label>Primary B2B Supplier Corporate Entity</label>
+                    <input type="text" id="field-supplier" class="jbs-input-control" placeholder="e.g. Highchem Pharmaceuticals East Africa" required>
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <div class="jbs-form-group" style="flex: 1;">
+                        <label>Storage Unit Qty</label>
+                        <input type="number" id="field-qty" class="jbs-input-control" value="10" min="0" required>
+                    </div>
+                    <div class="jbs-form-group" style="flex: 1;">
+                        <label>Wholesale Cost Price (Ksh)</label>
+                        <input type="number" id="field-cost" class="jbs-input-control" value="0" min="0" required>
+                    </div>
+                    <div class="jbs-form-group" style="flex: 1;">
+                        <label>Retail Selling Price (Ksh)</label>
+                        <input type="number" id="field-selling" class="jbs-input-control" value="0" min="0" required>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
+                    <button type="button" class="jbs-btn-primary" style="background: #475569;" onclick="closeProductFormModal()">Cancel</button>
+                    <button type="submit" class="jbs-btn-primary">Commit Structure Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let localInventoryMemoryStore = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeRealtimeSseConnection();
+            synchronizeFullDataGridState();
+        });
+
+        // Lightweight Event Stream Parser: Instantly syncs scans from scanner.html without reloading
+        function initializeRealtimeSseConnection() {
+            const eventSourceStream = new EventSource('/api/inventory/stream');
+
+            eventSourceStream.onmessage = function(event) {
+                const parsedStreamPayload = JSON.parse(event.data);
+                
+                if (parsedStreamPayload.type === "TELEMETRY_ALERT") {
+                    appendTelemetryLogRecord(parsedStreamPayload.payload);
+                    triggerVocalAlertFeedback(parsedStreamPayload.payload.voice_cue);
+                    synchronizeFullDataGridState(); // Force instant localized card metrics redraw
+                }
+            };
+
+            eventSourceStream.onerror = function() {
+                console.warn("SSE interface dropped. Re-establishing link channels dynamically.");
+            };
+        }
+
+        async function synchronizeFullDataGridState() {
+            try {
+                const res = await fetch('/api/inventory/records-extended');
+                if(!res.ok) return;
+                localInventoryMemoryStore = await res.json();
+                
+                populateFilterDropdownCategories();
+                renderInventoryDataGrid();
+            } catch(e) { console.error("Error updating memory state logs store.", e); }
+        }
+
+        function populateFilterDropdownCategories() {
+            const catSelect = document.getElementById('filter-category');
+            const cachedValue = catSelect.value;
+            const uniqueCategoriesSet = [...new Set(localInventoryMemoryStore.map(p => p.category))];
+            
+            catSelect.innerHTML = '<option value="ALL">All Categories</option>';
+            uniqueCategoriesSet.forEach(cat => {
+                if(!cat) return;
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.innerText = cat;
+                catSelect.appendChild(opt);
+            });
+            catSelect.value = cachedValue;
+        }
+
+        function renderInventoryDataGrid() {
+            const query = document.getElementById('inv-search').value.toLowerCase().trim();
+            const selectedCategory = document.getElementById('filter-category').value;
+            const stockStateFilter = document.getElementById('filter-stock-state').value;
+            const tbody = document.getElementById('inventory-tbody-target');
+
+            tbody.innerHTML = "";
+
+            let countedProducts = localInventoryMemoryStore.length;
+            let sumTotalUnitsHoldings = 0;
+            let computedSheetValuation = 0;
+            let loggedLowStockAlerts = 0;
+
+            localInventoryMemoryStore.forEach(p => {
+                sumTotalUnitsHoldings += p.qty;
+                const holdingValuation = p.qty * p.selling_price;
+                computedSheetValuation += holdingValuation;
+                if(p.qty <= 15) loggedLowStockAlerts++;
+
+                // Apply active filtering logic matching rule metrics
+                const matchSearch = p.name.toLowerCase().includes(query) || 
+                                    p.barcode.toLowerCase().includes(query) || 
+                                    p.serial_number.toLowerCase().includes(query);
+                const matchCategory = (selectedCategory === "ALL") || (p.category === selectedCategory);
+                
+                let matchStockState = true;
+                if(stockStateFilter === "NORMAL") matchStockState = (p.qty > 15);
+                if(stockStateFilter === "LOW") matchStockState = (p.qty <= 15 && p.qty > 0);
+                if(stockStateFilter === "OUT") matchStockState = (p.qty === 0);
+
+                if (matchSearch && matchCategory && matchStockState) {
+                    let badgeClass = "badge-normal";
+                    let badgeLabel = "In Stock";
+                    if(p.qty === 0) { badgeClass = "badge-out"; badgeLabel = "Depleted"; }
+                    else if(p.qty <= 15) { badgeClass = "badge-low"; badgeLabel = "Low Stock"; }
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="color:var(--accent-blue); font-family:monospace; font-weight:bold;">${p.barcode}</td>
+                        <td><strong>${p.name}</strong><br><small style="color:#64748b;">SN: ${p.serial_number}</small></td>
+                        <td><span style="color:#94a3b8; font-size:0.8rem;">${p.category}</span></td>
+                        <td style="font-weight:bold; color:${p.qty <= 15 ? 'var(--alert-orange)':'#fff'}">${p.qty} units</td>
+                        <td>Ksh ${p.cost_price.toFixed(2)}</td>
+                        <td>Ksh ${p.selling_price.toFixed(2)}</td>
+                        <td style="color:var(--accent-green); font-weight:600;">Ksh ${holdingValuation.toFixed(2)}</td>
+                        <td><span class="badge ${badgeClass}">${badgeLabel}</span></td>
+                        <td style="text-align:center;">
+                            <div style="display:flex; gap:4px; justify-content:center;">
+                                <button class="jbs-btn-primary" style="padding:4px 8px; font-size:0.75rem; background:#475569;" onclick="bindRecordToMutationModal('${p.barcode}')"><i class="fa-solid fa-edit"></i></button>
+                                <button class="jbs-btn-primary" style="padding:4px 8px; font-size:0.75rem; background:var(--alert-red);" onclick="triggerDeleteAssetConfirmation('${p.barcode}')"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            });
+
+            // Hydrate interactive counters blocks securely onto layouts interface targets
+            document.getElementById('stat-total-products').innerText = countedProducts;
+            document.getElementById('stat-total-units').innerText = sumTotalUnitsHoldings;
+            document.getElementById('stat-total-value').innerText = `Ksh ${computedSheetValuation.toLocaleString(undefined, {minimumFractionDigits:2})}`;
+            document.getElementById('stat-low-stock').innerText = loggedLowStockAlerts;
+
+            if(tbody.innerHTML === "") {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:3rem; color:#64748b;">No inventory asset vectors matching filters match registry listings.</td></tr>`;
+            }
+        }
+
+        function appendTelemetryLogRecord(log) {
+            const container = document.getElementById('telemetry-logs-container');
+            const logBlock = document.createElement('div');
+            logBlock.style.cssText = "padding:8px; background:rgba(0,0,0,0.2); border-radius:4px; border-left:3px solid var(--accent-blue); animation: fadeIn 0.4s ease-out;";
+            
+            if(log.type.includes("DEPLETED")) logBlock.style.borderLeftColor = "var(--alert-red)";
+            else if(log.type.includes("LOW")) logBlock.style.borderLeftColor = "var(--alert-orange)";
+            else if(log.type.includes("MUTATION")) logBlock.style.borderLeftColor = "var(--accent-green)";
+
+            logBlock.innerHTML = `
+                <div style="display:flex; justify-content:space-between; font-weight:bold; margin-bottom:2px;">
+                    <span style="color:var(--accent-blue); font-size:0.7rem;">${log.type}</span>
+                    <span style="color:#64748b; font-size:0.65rem;">${log.timestamp}</span>
+                </div>
+                <div style="color:#e2e8f0;">${log.message}</div>
+                <div style="font-size:0.65rem; color:#64748b; margin-top:2px;">Operator Track Hash: ${log.operator}</div>
+            `;
+            container.insertBefore(logBlock, container.firstChild);
+        }
+
+        function triggerVocalAlertFeedback(vocalCueText) {
+            const audioEnabled = document.getElementById('audio-toggle').checked;
+            if (!audioEnabled || !vocalCueText) return;
+
+            const audioSpeechUtteranceInstance = new SpeechSynthesisUtterance(vocalCueText);
+            audioSpeechUtteranceInstance.volume = parseFloat(document.getElementById('audio-volume').value) || 0.8;
+            audioSpeechUtteranceInstance.rate = 1.0;
+            window.speechSynthesis.speak(audioSpeechUtteranceInstance);
+        }
+
+        /* FORM CONTROLS MUTATIONS SUB-ROUTINES INTERFACES */
+        function openProductFormModal() {
+            document.getElementById('product-mutation-form').reset();
+            document.getElementById('form-action-mode').value = "CREATE";
+            document.getElementById('modal-title-context').innerText = "Intake New Product Profile Record";
+            document.getElementById('field-barcode').readOnly = false;
+            document.getElementById('product-modal').style.display = 'flex';
+        }
+
+        function closeProductFormModal() {
+            document.getElementById('product-modal').style.display = 'none';
+        }
+
+        function bindRecordToMutationModal(barcode) {
+            const match = localInventoryMemoryStore.find(p => p.barcode === barcode);
+            if(!match) return;
+
+            document.getElementById('form-action-mode').value = "UPDATE";
+            document.getElementById('modal-title-context').innerText = `Modify System Asset: ${match.name}`;
+            
+            document.getElementById('field-barcode').value = match.barcode;
+            document.getElementById('field-barcode').readOnly = true;
+            document.getElementById('field-name').value = match.name;
+            document.getElementById('field-serial').value = match.serial_number;
+            document.getElementById('field-category').value = match.category;
+            document.getElementById('field-supplier').value = match.supplier;
+            document.getElementById('field-qty').value = match.qty;
+            document.getElementById('field-cost').value = match.cost_price;
+            document.getElementById('field-selling').value = match.selling_price;
+
+            document.getElementById('product-modal').style.display = 'flex';
+        }
+
+        async function executeFormSubmissionRequest(e) {
+            e.preventDefault();
+            const mode = document.getElementById('form-action-mode').value;
+            const endpoint = mode === "CREATE" ? '/api/inventory/add-product' : '/api/inventory/update-product';
+
+            const payload = {
+                barcode: document.getElementById('field-barcode').value,
+                name: document.getElementById('field-name').value,
+                serial_number: document.getElementById('field-serial').value,
+                category: document.getElementById('field-category').value,
+                supplier: document.getElementById('field-supplier').value,
+                qty: parseInt(document.getElementById('field-qty').value) || 0,
+                cost_price: parseFloat(document.getElementById('field-cost').value) || 0,
+                selling_price: parseFloat(document.getElementById('field-selling').value) || 0,
+                operator: "Dr_Kabuthi"
+            };
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if(res.ok) {
+                    closeProductFormModal();
+                    synchronizeFullDataGridState();
+                } else {
+                    const err = await res.json();
+                    alert("Rejection execution flag error: " + err.message);
+                }
+            } catch(e) { alert("Network exception logging entry onto ledger schemas."); }
+        }
+
+        async function triggerDeleteAssetConfirmation(barcode) {
+            if(!confirm("Are you sure you want to completely drop this product vector profile from inventory database mappings? This action cannot be undone.")) return;
+            try {
+                const res = await fetch('/api/inventory/delete-product', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ barcode, operator: "Dr_Kabuthi" })
+                });
+                if(res.ok) synchronizeFullDataGridState();
+            } catch(e){}
+        }
+
+        function exportInventoryToCSV() {
+            if(!localInventoryMemoryStore.length) return alert("Nothing compiled to extract.");
+            let csv = "data:text/csv;charset=utf-8,Barcode,Product Name,Serial,Category,Supplier,Quantity,Cost Price,Selling Price,Inventory Value\n";
+            localInventoryMemoryStore.forEach(p => {
+                csv += `"${p.barcode}","${p.name}","${p.serial_number}","${p.category}","${p.supplier}",${p.qty},${p.cost_price},${p.selling_price},${(p.qty*p.selling_price).toFixed(2)}\n`;
+            });
+            const encodedUri = encodeURI(csv);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `JBS_Inventory_MasterSheet_${new Date().toISOString().substring(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

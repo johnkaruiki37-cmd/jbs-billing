@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JBS - Intelligent Billing Desk</title>
+    <link rel="stylesheet" href="shared.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+   
+   <style>
+        :root {
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-green: #10b981;
+            --accent-gold: #d4af37;
+            --accent-blue: #38bdf8;
+        }
+
+        .billing-grid {
+            display: grid;
+            grid-template-columns: 1.8fr 1.2fr;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .billing-grid { grid-template-columns: 1fr; }
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+        }
+
+        .widget-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .widget-box {
+            background: rgba(15, 23, 42, 0.6);
+            border-left: 4px solid var(--accent-blue);
+            padding: 1.25rem;
+            border-radius: 6px;
+        }
+
+        .flex-group {
+            display: flex;
+            gap: 1rem;
+        }
+        .flex-group > * { flex: 1; }
+
+        /* Invoice Sheet Blueprint Layout styling */
+        .invoice-table th { background: rgba(15, 23, 42, 0.8) !important; color: #94a3b8; }
+        .remove-btn { background: rgba(239, 68, 68, 0.15); color: #f87171; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        .remove-btn:hover { background: #ef4444; color: white; }
+
+        /* Document Blueprint Printing Frame Rules */
+        @media print {
+            body * { visibility: hidden; background: #fff !important; color: #000 !important; }
+            #printable-invoice-canvas, #printable-invoice-canvas * { visibility: visible; }
+            #printable-invoice-canvas { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; box-shadow: none; }
+            .no-print { display: none !important; }
+        }
+
+        #printable-invoice-canvas {
+            background: #fff;
+            color: #0f172a;
+            border-radius: 8px;
+            padding: 2.5rem;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+<body> 
+  <div class="jbs-canvas-backdrop"><div class="jbs-wave-layer"></div></div>
+    <div class="jbs-app-wrapper">
+        <aside class="jbs-fixed-sidebar glass-panel" id="sidebar">
+            <div class="jbs-sidebar-header-wrapper">
+                <div class="jbs-navbar-brand-block">
+                    <i class="fa-solid fa-shield-halved jbs-brand-logo"></i>
+                    <span class="jbs-profile-name-string" style="font-weight:700;">JBS TERMINAL</span>
+                </div>
+            </div>
+            <nav class="jbs-sidebar-menu-list">
+                <a href="index.html" class="jbs-menu-nav-item"><i class="fa-solid fa-house"></i><span class="jbs-menu-text-label">Home Landing</span></a>
+                <a href="dashboard.html" class="jbs-menu-nav-item"><i class="fa-solid fa-chart-pie"></i><span class="jbs-menu-text-label">Admin Dashboard</span></a>
+                <a href="billing.html" class="jbs-menu-nav-item"><i class="fa-solid fa-file-invoice-dollar"></i><span class="jbs-menu-text-label">Billing & Invoices</span></a>
+                <a href="inventory.html" class="jbs-menu-nav-item"><i class="fa-solid fa-boxes-stacked"></i><span class="jbs-menu-text-label">Inventory Control</span></a>
+                <a href="scanner.html" class="jbs-menu-nav-item active-page-node"><i class="fa-solid fa-barcode"></i><span class="jbs-menu-text-label">Barcode Scanner</span></a>
+                <a href="mpesa.html" class="jbs-menu-nav-item"><i class="fa-solid fa-wallet"></i><span class="jbs-menu-text-label">M-Pesa Ledger</span></a>
+                <a href="forum.html" class="jbs-menu-nav-item"><i class="fa-solid fa-users"></i><span class="jbs-menu-text-label">Business Forum</span></a>
+                <a href="about.html" class="jbs-menu-nav-item"><i class="fa-solid fa-circle-info"></i><span class="jbs-menu-text-label">About System</span></a>
+            </nav>
+        </aside>
+    
+    <main class="jbs-main-container">
+        <div class="widget-row no-print">
+            <div class="widget-box">
+                <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase;">Total Shift Sales</div>
+                <div id="stat-total-sales" style="font-size: 1.5rem; font-weight: bold; color: var(--accent-green); margin-top: 4px;">Ksh 0.00</div>
+            </div>
+            <div class="widget-box" style="border-left-color: var(--accent-gold);">
+                <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase;">Invoices Compiled</div>
+                <div id="stat-invoice-count" style="font-size: 1.5rem; font-weight: bold; color: #fff; margin-top: 4px;">0</div>
+            </div>
+            <div class="widget-box" style="border-left-color: #ef4444;">
+                <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase;">Outstanding Credit Balances</div>
+                <div id="stat-credit-balance" style="font-size: 1.5rem; font-weight: bold; color: #ef4444; margin-top: 4px;">Ksh 0.00</div>
+            </div>
+        </div>
+
+        <div class="billing-grid">
+            <div class="glass-card no-print">
+                <h3 style="margin-top: 0; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;"><i class="fa-solid fa-file-invoice-dollar"></i> Active Invoice Blueprint</h3>
+                
+                <form id="billing-core-form" onsubmit="processInvoiceSubmission(event)">
+                    <div class="flex-group">
+                        <div class="jbs-form-group">
+                            <label>Invoice Token ID</label>
+                            <input type="text" id="inv-id" class="jbs-input-control" readonly style="background: rgba(0,0,0,0.3); color: var(--accent-gold); font-weight: bold;">
+                        </div>
+                        <div class="jbs-form-group">
+                            <label>Due Date Target</label>
+                            <input type="date" id="inv-due-date" class="jbs-input-control" required>
+                        </div>
+                        <div class="jbs-form-group">
+                            <label>Salesperson Handle</label>
+                            <input type="text" id="inv-salesperson" class="jbs-input-control" value="Dr_Kabuthi" required>
+                        </div>
+                    </div>
+
+                    <h4 style="color: var(--accent-blue); margin-bottom: 0.75rem;">Customer Identification Profiles</h4>
+                    <div class="flex-group">
+                        <div class="jbs-form-group">
+                            <label>Full Name / Corporate Entity</label>
+                            <input type="text" id="cust-name" class="jbs-input-control" placeholder="John Doe Logistics Ltd" required>
+                        </div>
+                        <div class="jbs-form-group">
+                            <label>M-Pesa Connected Phone</label>
+                            <input type="text" id="cust-phone" class="jbs-input-control" placeholder="0712345678" required>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+                        <h4 style="color: var(--accent-blue); margin: 0;">Line Item Asset Allocations</h4>
+                        <button type="button" class="jbs-btn-primary" style="font-size: 0.8rem; padding: 6px 12px;" onclick="addInvoiceItemRow()"><i class="fa-solid fa-plus"></i> Append Item Row</button>
+                    </div>
+
+                    <table class="jbs-table invoice-table" style="margin-top: 0.75rem;">
+                        <thead>
+                            <tr>
+                                <th style="width: 35%;">Product Item Catalog</th>
+                                <th style="width: 15%;">Quantity</th>
+                                <th style="width: 20%;">Unit Cost (Ksh)</th>
+                                <th style="width: 15%;">Disc %</th>
+                                <th style="width: 15%;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoice-items-tbody">
+                            </tbody>
+                    </table>
+
+                    <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+                        <div style="width: 300px; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 6px; border: 1px solid var(--glass-border);">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;"><span>Subtotal:</span><span id="calc-subtotal">Ksh 0.00</span></div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color:#f87171;"><span>Discounts Total:</span><span id="calc-discount">- Ksh 0.00</span></div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;"><span>16% VAT Tax:</span><span id="calc-vat">Ksh 0.00</span></div>
+                            <hr style="border:0; border-top:1px solid var(--glass-border);">
+                            <div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--accent-green); font-size: 1.1rem;"><span>Grand Total:</span><span id="calc-grandtotal">Ksh 0.00</span></div>
+                        </div>
+                    </div>
+
+                    <h4 style="color: var(--accent-blue); margin-top: 1rem; margin-bottom: 0.5rem;">Settlement Framework Options</h4>
+                    <div class="flex-group">
+                        <div class="jbs-form-group">
+                            <label>Payment Channel Method</label>
+                            <select id="pay-method" class="jbs-input-control">
+                                <option value="M-Pesa">M-Pesa Express Automation</option>
+                                <option value="Cash">Cash Liquidity Counter</option>
+                                <option value="Bank Transfer">Direct Bank Wire clearing</option>
+                                <option value="Credit Sale">Credit Sale / Account Debtor</option>
+                            </select>
+                        </div>
+                        <div class="jbs-form-group">
+                            <label>Payment Status</label>
+                            <select id="pay-status" class="jbs-input-control">
+                                <option value="Paid">Fully Paid Settlement</option>
+                                <option value="Partially Paid">Partially Paid Ledger Balance</option>
+                                <option value="Unpaid">Unpaid / Open Liability Invoice</option>
+                            </select>
+                        </div>
+                        <div class="jbs-form-group">
+                            <label>Amount Remitted (Ksh)</label>
+                            <input type="number" id="pay-amount-paid" class="jbs-input-control" placeholder="0.00" value="0" required oninput="evaluateSummaryCalculations()">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                        <button type="submit" class="jbs-btn-primary" style="width: 100%; font-size: 1rem; padding: 12px;"><i class="fa-solid fa-cloud-arrow-up"></i> Save & Reconcile Transaction</button>
+                    </div>
+                </form>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <div class="glass-card" style="padding: 1rem; background: #fff; overflow-y: auto; max-height: 520px;">
+                    <div id="printable-invoice-canvas" style="display: block;">
+                        <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 1rem;">
+                            <div>
+                                <h2 style="margin: 0; font-size: 1.5rem; text-transform: uppercase; color: #000;">JOHN BILLING SYSTEM LTD</h2>
+                                <p style="margin: 3px 0; font-size: 0.8rem; color: #334155;">Industrial Area, Block G, Nairobi, KE</p>
+                                <p style="margin: 3px 0; font-size: 0.8rem; color: #334155;">Contact: +254 798 770 325 | support@jbs.co.ke</p>
+                                <p style="margin: 3px 0; font-size: 0.8rem; font-weight: bold;">KRA PIN: P051948102X</p>
+                            </div>
+                            <div style="text-align: right;">
+                                <h1 style="margin: 0; color: #64748b; font-size: 1.75rem; letter-spacing: 2px;">INVOICE</h1>
+                                <div style="margin-top: 10px; font-size: 0.85rem;">
+                                    <div><strong>DOC REF ID:</strong> <span id="view-inv-id" style="color: #ef4444;">--</span></div>
+                                    <div><strong>DATE:</strong> <span id="view-inv-date">--</span></div>
+                                    <div><strong>DUE BY:</strong> <span id="view-inv-due">--</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin: 1.5rem 0; font-size: 0.85rem; display: flex; justify-content: space-between;">
+                            <div>
+                                <span style="text-transform: uppercase; color: #64748b; font-size: 0.75rem; font-weight: bold; display: block; margin-bottom: 4px;">Bill To Debtor Account</span>
+                                <strong id="view-cust-name" style="font-size: 1rem; color: #000;">--</strong>
+                                <div id="view-cust-phone" style="color: #334155; margin-top: 2px;">--</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="text-transform: uppercase; color: #64748b; font-size: 0.75rem; font-weight: bold; display: block; margin-bottom: 4px;">Operator Desk</span>
+                                <strong id="view-salesperson">Dr_Kabuthi</strong>
+                            </div>
+                        </div>
+
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 1rem;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid #0f172a; text-align: left;">
+                                    <th style="padding: 8px 0;">Item Manifest Catalog Specification</th>
+                                    <th style="padding: 8px; text-align: center;">Qty</th>
+                                    <th style="padding: 8px; text-align: right;">Unit Rate</th>
+                                    <th style="padding: 8px; text-align: right;">Total Gross</th>
+                                </tr>
+                            </thead>
+                            <tbody id="view-items-tbody">
+                                <tr><td colspan="4" style="text-align: center; padding: 2rem 0; color: #64748b;">No items allocated to current active layout sheet canvas.</td></tr>
+                            </tbody>
+                        </table>
+
+                        <div style="display: flex; justify-content: flex-end; margin-top: 2rem;">
+                            <table style="width: 260px; font-size: 0.85rem; border-top: 1px solid #cbd5e1; padding-top: 0.5rem;">
+                                <tr><td style="padding: 4px 0;">Subtotal Gross:</td><td style="text-align: right;" id="view-subtotal">Ksh 0.00</td></tr>
+                                <tr><td style="padding: 4px 0; color: #dc2626;">Deductions:</td><td style="text-align: right; color: #dc2626;" id="view-discount">- Ksh 0.00</td></tr>
+                                <tr><td style="padding: 4px 0;">VAT Tax (16%):</td><td style="text-align: right;" id="view-vat">Ksh 0.00</td></tr>
+                                <tr style="font-weight: bold; border-top: 2px double #0f172a;"><td style="padding: 6px 0; font-size: 1rem;">NET TOTAL DUE:</td><td style="text-align: right; font-size: 1rem;" id="view-grandtotal">Ksh 0.00</td></tr>
+                                <tr><td style="padding: 4px 0; color: #16a34a;">Amount Paid:</td><td style="text-align: right; color: #16a34a;" id="view-remitted">Ksh 0.00</td></tr>
+                                <tr style="border-top: 1px solid #0f172a; font-weight: bold;"><td style="padding: 4px 0;">Balance Due:</td><td style="text-align: right;" id="view-balance">Ksh 0.00</td></tr>
+                            </table>
+                        </div>
+
+                        <div style="margin-top: 3.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; font-size: 0.75rem;">
+                            <div>
+                                <div style="border-bottom: 1px dashed #000; height: 35px;"></div>
+                                <p style="margin: 4px 0; text-align: center; font-weight: bold;">Customer Authorization Sign / Date</p>
+                            </div>
+                            <div>
+                                <div style="border-bottom: 1px dashed #000; height: 35px; position: relative;">
+                                    <span style="position: absolute; bottom: 2px; right: 10px; color: rgba(15,23,42,0.15); font-weight: bold; font-family: sans-serif; letter-spacing: 1px; font-size: 0.65rem;">JBS STAMP SECURE</span>
+                                </div>
+                                <p style="margin: 4px 0; text-align: center; font-weight: bold;">Authorized Signature / Company Stamp</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card no-print" style="display: flex; gap: 0.75rem; padding: 0.75rem;">
+                    <button class="jbs-btn-primary" style="background: #475569; width: 100%;" onclick="window.print()"><i class="fa-solid fa-print"></i> Execute Hardcopy Print</button>
+                    <button class="jbs-btn-primary" style="background: #16a34a; width: 100%;" onclick="triggerClientSidePdfDownload()"><i class="fa-solid fa-download"></i> Save As PDF Document</button>
+                </div>
+
+                <div class="glass-card no-print">
+                    <h3 style="margin-top: 0; font-size: 1rem;"><i class="fa-solid fa-clock-rotate-left"></i> Historic Ledger Archives</h3>
+                    <div style="max-height: 180px; overflow-y: auto; font-size: 0.85rem;" id="invoice-history-list">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let catalogProductsList = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeInvoiceFormMeta();
+            pullActiveInventoryDropdowns();
+            syncDeskSummaryStats();
+            loadInvoiceHistoryLedger();
+        });
+
+        function initializeInvoiceFormMeta() {
+            document.getElementById('inv-id').value = "INV-" + Math.floor(100000 + Math.random() * 900000);
+            document.getElementById('inv-due-date').value = new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0];
+            
+            // Map input sync event listeners to paper mock frame
+            document.getElementById('inv-id').addEventListener('input', syncFormToPaperBlueprint);
+            document.getElementById('inv-due-date').addEventListener('input', syncFormToPaperBlueprint);
+            document.getElementById('inv-salesperson').addEventListener('input', syncFormToPaperBlueprint);
+            document.getElementById('cust-name').addEventListener('input', syncFormToPaperBlueprint);
+            document.getElementById('cust-phone').addEventListener('input', syncFormToPaperBlueprint);
+
+            addInvoiceItemRow(); // Append initial single active entry row item automatically
+        }
+
+        async function pullActiveInventoryDropdowns() {
+            try {
+                const res = await fetch('/api/inventory');
+                catalogProductsList = await res.json();
+            } catch(e) { console.error("Could not populate product definitions array.", e); }
+        }
+
+        function addInvoiceItemRow() {
+            const tbody = document.getElementById('invoice-items-tbody');
+            const rowId = "item-row-" + Date.now();
+            const tr = document.createElement('tr');
+            tr.id = rowId;
+
+            // Generate catalog choice array blocks dynamically
+            const selectOptions = catalogProductsList.map(p => `<option value="${p.barcode}">${p.name} (Qty: ${p.qty})</option>`).join('');
+
+            tr.innerHTML = `
+                <td>
+                    <select class="jbs-input-control row-barcode" style="width:100%;" onchange="handleDropdownProductSelect('${rowId}')">
+                        <option value="">-- Choose Product Asset --</option>
+                        ${selectOptions}
+                    </select>
+                </td>
+                <td><input type="number" class="jbs-input-control row-qty" value="1" min="1" oninput="evaluateSummaryCalculations()" style="padding:4px 8px;"></td>
+                <td><input type="number" class="jbs-input-control row-price" value="0" min="0" oninput="evaluateSummaryCalculations()" style="padding:4px 8px;"></td>
+                <td><input type="number" class="jbs-input-control row-disc" value="0" min="0" max="100" oninput="evaluateSummaryCalculations()" style="padding:4px 8px;"></td>
+                <td style="text-align:center;"><button type="button" class="remove-btn" onclick="removeInvoiceItemRow('${rowId}')"><i class="fa-solid fa-trash-can"></i></button></td>
+            `;
+            tbody.appendChild(tr);
+            evaluateSummaryCalculations();
+        }
+
+        function removeInvoiceItemRow(rowId) {
+            const row = document.getElementById(rowId);
+            if(row) row.remove();
+            evaluateSummaryCalculations();
+        }
+
+        function handleDropdownProductSelect(rowId) {
+            const row = document.getElementById(rowId);
+            const barcode = row.querySelector('.row-barcode').value;
+            const match = catalogProductsList.find(p => p.barcode === barcode);
+            
+            if(match) {
+                if(match.qty <= 0) {
+                    alert("Critical Out of Stock: Cannot reserve allocation balance against zero storage records!");
+                    row.querySelector('.row-barcode').value = "";
+                    return;
+                }
+                row.querySelector('.row-price').value = match.unit_value || match.value || 0;
+                evaluateSummaryCalculations();
+            }
+        }
+
+        function evaluateSummaryCalculations() {
+            let subtotalGross = 0;
+            let totalDeductions = 0;
+            const rows = document.querySelectorAll('#invoice-items-tbody tr');
+            const paperItemsTbody = document.getElementById('view-items-tbody');
+            
+            paperItemsTbody.innerHTML = ""; // Flush paper line rows layout
+
+            rows.forEach(row => {
+                const barcode = row.querySelector('.row-barcode').value;
+                const qty = parseInt(row.querySelector('.row-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.row-price').value) || 0;
+                const discPercent = parseFloat(row.querySelector('.row-disc').value) || 0;
+
+                if(!barcode) return;
+
+                const matchedProduct = catalogProductsList.find(p => p.barcode === barcode);
+                const pName = matchedProduct ? matchedProduct.name : "Unregistered Line Item Reference";
+
+                const lineGross = qty * price;
+                const lineDiscount = lineGross * (discPercent / 100);
+                const lineNetValue = lineGross - lineDiscount;
+
+                subtotalGross += lineGross;
+                totalDeductions += lineDiscount;
+
+                // Append lines directly to paper preview print sheets template real-time
+                const paperTr = document.createElement('tr');
+                paperTr.style.borderBottom = "1px solid #e2e8f0";
+                paperTr.innerHTML = `
+                    <td style="padding:8px 0;"><strong>${pName}</strong><br><small style="color:#64748b;">Code ID: ${barcode}</small></td>
+                    <td style="padding:8px; text-align:center;">${qty}</td>
+                    <td style="padding:8px; text-align:right;">Ksh ${price.toFixed(2)}</td>
+                    <td style="padding:8px; text-align:right;">Ksh ${lineNetValue.toFixed(2)}</td>
+                `;
+                paperItemsTbody.appendChild(paperTr);
+            });
+
+            if(paperItemsTbody.innerHTML === "") {
+                paperItemsTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:2rem 0; color:#64748b;">No items allocated to current active layout sheet canvas.</td></tr>`;
+            }
+
+            const taxVatAmount = (subtotalGross - totalDeductions) * 0.16;
+            const netGrandTotal = (subtotalGross - totalDeductions) + taxVatAmount;
+            const amountPaidRemitted = parseFloat(document.getElementById('pay-amount-paid').value) || 0;
+            const customerBalanceRemaining = netGrandTotal - amountPaidRemitted;
+
+            // Bind values directly into workspace calculation dashboard components
+            document.getElementById('calc-subtotal').innerText = `Ksh ${subtotalGross.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('calc-discount').innerText = `- Ksh ${totalDeductions.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('calc-vat').innerText = `Ksh ${taxVatAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('calc-grandtotal').innerText = `Ksh ${netGrandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+            // Sync structural targets layout directly onto print layout sheets nodes
+            document.getElementById('view-subtotal').innerText = `Ksh ${subtotalGross.toFixed(2)}`;
+            document.getElementById('view-discount').innerText = `- Ksh ${totalDeductions.toFixed(2)}`;
+            document.getElementById('view-vat').innerText = `Ksh ${taxVatAmount.toFixed(2)}`;
+            document.getElementById('view-grandtotal').innerText = `Ksh ${netGrandTotal.toFixed(2)}`;
+            document.getElementById('view-remitted').innerText = `Ksh ${amountPaidRemitted.toFixed(2)}`;
+            document.getElementById('view-balance').innerText = `Ksh ${customerBalanceRemaining.toFixed(2)}`;
+
+            syncFormToPaperBlueprint();
+        }
+
+        function syncFormToPaperBlueprint() {
+            document.getElementById('view-inv-id').innerText = document.getElementById('inv-id').value;
+            document.getElementById('view-inv-date').innerText = new Date().toISOString().substring(0,10);
+            document.getElementById('view-inv-due').innerText = document.getElementById('inv-due-date').value;
+            document.getElementById('view-salesperson').innerText = document.getElementById('inv-salesperson').value;
+            document.getElementById('view-cust-name').innerText = document.getElementById('cust-name').value || "--";
+            document.getElementById('view-cust-phone').innerText = document.getElementById('cust-phone').value || "--";
+        }
+
+        async function processInvoiceSubmission(event) {
+            event.preventDefault();
+            
+            const rows = document.querySelectorAll('#invoice-items-tbody tr');
+            const compiledAllocatedItemsArray = [];
+            let inventoryShortageTrigger = false;
+
+            rows.forEach(row => {
+                const barcode = row.querySelector('.row-barcode').value;
+                const qty = parseInt(row.querySelector('.row-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.row-price').value) || 0;
+                const discount = parseFloat(row.querySelector('.row-disc').value) || 0;
+
+                if(!barcode) return;
+
+                // Pre-validate local structural storage allocations to secure safety constraints
+                const localMatch = catalogProductsList.find(p => p.barcode === barcode);
+                if (localMatch && localMatch.qty < qty) {
+                    alert(`Operational Shortage Lockout: Requested (${qty}) units of asset ${localMatch.name} exceeds storage capacity tracking balances (${localMatch.qty})!`);
+                    inventoryShortageTrigger = true;
+                    return;
+                }
+
+                compiledAllocatedItemsArray.push({ barcode, qty, price, discount });
+            });
+
+            if(inventoryShortageTrigger || !compiledAllocatedItemsArray.length) return;
+
+            const payload = {
+                invoice_id: document.getElementById('inv-id').value,
+                due_date: document.getElementById('inv-due-date').value,
+                salesperson: document.getElementById('inv-salesperson').value,
+                customer: {
+                    name: document.getElementById('cust-name').value,
+                    phone: document.getElementById('cust-phone').value
+                },
+                items: compiledAllocatedItemsArray,
+                payment: {
+                    method: document.getElementById('pay-method').value,
+                    status: document.getElementById('pay-status').value,
+                    amount_paid: parseFloat(document.getElementById('pay-amount-paid').value) || 0
+                }
+            };
+
+            try {
+                const res = await fetch('/api/billing/create-invoice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if(res.ok) {
+                    alert("Invoice compiled successfully! Ledger records reconciled, database entries verified, and storage balances mutated.");
+                    document.getElementById('billing-core-form').reset();
+                    initializeInvoiceFormMeta();
+                    await pullActiveInventoryDropdowns();
+                    syncDeskSummaryStats();
+                    loadInvoiceHistoryLedger();
+                } else {
+                    const err = await res.json();
+                    alert("Pipeline rejection alert: " + err.message);
+                }
+            } catch(e) { alert("Communication channel fault encountered processing payload."); }
+        }
+
+        async function syncDeskSummaryStats() {
+            try {
+                const res = await fetch('/api/billing/summary');
+                const d = await res.json();
+                document.getElementById('stat-total-sales').innerText = `Ksh ${d.total_sales_value.toLocaleString(undefined, {minimumFractionDigits:2})}`;
+                document.getElementById('stat-invoice-count').innerText = d.invoice_count;
+                document.getElementById('stat-credit-balance').innerText = `Ksh ${d.outstanding_credit.toLocaleString(undefined, {minimumFractionDigits:2})}`;
+            } catch(e){}
+        }
+
+        async function loadInvoiceHistoryLedger() {
+            try {
+                const res = await fetch('/api/billing/history');
+                const list = await res.json();
+                const container = document.getElementById('invoice-history-list');
+                container.innerHTML = "";
+
+                if(!list.length) {
+                    container.innerHTML = `<div style="color:#64748b; padding:1rem; text-align:center;">No previous system history found.</div>`;
+                    return;
+                }
+
+                list.forEach(inv => {
+                    const row = document.createElement('div');
+                    row.style.cssText = "padding:8px; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between; align-items:center;";
+                    row.innerHTML = `
+                        <div>
+                            <strong style="color:var(--accent-gold);">${inv.invoice_id}</strong> &bull; <small>${inv.customer.name}</small>
+                            <div style="font-size:0.7rem; color:#64748b;">Remitted: Ksh ${inv.payment.amount_paid} / Status: ${inv.payment.status}</div>
+                        </div>
+                        <button class="jbs-btn-primary" style="font-size:0.7rem; padding:4px 8px;" onclick="reprintHistoricSheetDocument('${inv.invoice_id}')">View/Print</button>
+                    `;
+                    container.appendChild(row);
+                });
+            } catch(e){}
+        }
+
+        async function reprintHistoricSheetDocument(invoiceId) {
+            try {
+                const res = await fetch('/api/billing/history');
+                const list = await res.json();
+                const match = list.find(i => i.invoice_id === invoiceId);
+                if(!match) return;
+
+                // Force layout state reload onto active preview framework forms securely
+                document.getElementById('inv-id').value = match.invoice_id;
+                document.getElementById('inv-due-date').value = match.due_date;
+                document.getElementById('inv-salesperson').value = match.salesperson;
+                document.getElementById('cust-name').value = match.customer.name;
+                document.getElementById('cust-phone').value = match.customer.phone;
+                document.getElementById('pay-method').value = match.payment.method;
+                document.getElementById('pay-status').value = match.payment.status;
+                document.getElementById('pay-amount-paid').value = match.payment.amount_paid;
+
+                // Re-draw items mapping parameters directly
+                const tbody = document.getElementById('invoice-items-tbody');
+                tbody.innerHTML = "";
+                match.items.forEach(item => {
+                    const selectOptions = catalogProductsList.map(p => `<option value="${p.barcode}" ${p.barcode === item.barcode ? 'selected':''}>${p.name}</option>`).join('');
+                    const rowId = "item-row-" + Math.random().toString(36).substring(2,7);
+                    const tr = document.createElement('tr');
+                    tr.id = rowId;
+                    tr.innerHTML = `
+                        <td><select class="jbs-input-control row-barcode" style="width:100%;" onchange="handleDropdownProductSelect('${rowId}')">${selectOptions}</select></td>
+                        <td><input type="number" class="jbs-input-control row-qty" value="${item.qty}" min="1" oninput="evaluateSummaryCalculations()"></td>
+                        <td><input type="number" class="jbs-input-control row-price" value="${item.price}" min="0" oninput="evaluateSummaryCalculations()"></td>
+                        <td><input type="number" class="jbs-input-control row-disc" value="${item.discount}" min="0" max="100" oninput="evaluateSummaryCalculations()"></td>
+                        <td style="text-align:center;"><button type="button" class="remove-btn" onclick="removeInvoiceItemRow('${rowId}')"><i class="fa-solid fa-trash-can"></i></button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                evaluateSummaryCalculations();
+            } catch(e){}
+        }
+
+        function triggerClientSidePdfDownload() {
+            // Fires browser window printing engine driver cleanly mapped targeting standard file download loops
+            window.print();
+        }
+    </script>
+</body>
+</html>

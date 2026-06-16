@@ -1,0 +1,1585 @@
+/* ==========================================================================
+   1. CORE VARIABLES & MASTER THEME ENGINE (LIGHT & DARK MODES)
+   ========================================================================== */
+:root {
+    /* --- Shared Typography & Spacing Structural Constants --- */
+    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --sidebar-width-expanded: 280px;
+    --sidebar-width-collapsed: 80px;
+    --navbar-height: 70px;
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 0.38s cubic-bezier(0.25, 0.8, 0.25, 1);
+    --transition-slow: 0.55s cubic-bezier(0.25, 1, 0.5, 1);
+    
+    /* --- Structural Status Colors --- */
+    --status-success: #10b981;
+    --status-warning: #f59e0b;
+    --status-danger: #ef4444;
+    --status-info: #06b6d4;
+    
+    /* --- DEFAULT SYSTEM STATE: DEEP NAVY PREMIUM DARK MODE --- */
+    --bg-gradient: linear-gradient(135deg, #0b1329 0%, #080c18 50%, #030712 100%);
+    --glass-bg: rgba(15, 23, 42, 0.65);
+    --glass-bg-hover: rgba(30, 41, 59, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-border-hover: rgba(56, 189, 248, 0.4);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-blue: #38bdf8;
+    --accent-gradient: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    --neon-glow: 0 0 15px rgba(56, 189, 248, 0.5);
+}
+
+[data-theme="light"] {
+    /* --- ACCESSIBLE HIGH-CONTRAST LIGHT MODE METRICS --- */
+    --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-bg-hover: rgba(255, 255, 255, 0.9);
+    --glass-border: rgba(15, 23, 42, 0.08);
+    --glass-border-hover: rgba(2, 132, 199, 0.5);
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --accent-blue: #0284c7;
+    --accent-gradient: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    --card-shadow: 0 8px 32px 0 rgba(148, 163, 184, 0.18);
+    --neon-glow: 0 0 15px rgba(2, 132, 199, 0.35);
+}
+
+/* ==========================================================================
+   2. SYSTEM RESET & ANIMATED CANVAS BACKDROP ENGINE
+   ========================================================================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-primary);
+    background: var(--bg-gradient);
+    color: var(--text-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+    transition: background var(--transition-normal), color var(--transition-normal);
+}
+
+/* Accelerated continuously running container backdrop vectors */
+.jbs-canvas-backdrop {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    perspective: 1000px;
+}
+
+.jbs-wave-layer {
+    position: absolute;
+    width: 200%; height: 200%;
+    top: -50%; left: -50%;
+    background: radial-gradient(circle at 30% 30%, rgba(56, 189, 248, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.03) 0%, transparent 50%);
+    transform-style: preserve-3d;
+    animation: waveMotionAxis 25s infinite linear alternate;
+}
+
+@keyframes waveMotionAxis {
+    0% { transform: rotate(0deg) scale(1); }
+    100% { transform: rotate(8deg) scale(1.15); }
+}
+
+.jbs-particle-node {
+    position: absolute;
+    background: var(--accent-blue);
+    border-radius: 50%;
+    opacity: 0.15;
+    filter: blur(4px);
+    animation: floatNodeTrajectory 12s infinite linear;
+}
+
+@keyframes floatNodeTrajectory {
+    0% { transform: translateY(100vh) translateX(0) scale(1); opacity: 0; }
+    50% { opacity: 0.25; }
+    100% { transform: translateY(-10vh) translateX(50px) scale(1.5); opacity: 0; }
+}
+
+/* ==========================================================================
+   3. SYSTEM APPLICATION CORE GRID LAYOUT STRUCTURAL SYSTEM
+   ========================================================================== */
+.jbs-app-wrapper {
+    display: flex;
+    width: 100vw;
+    min-height: 100vh;
+}
+
+.jbs-main-viewport {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    margin-left: var(--sidebar-width-expanded);
+    transition: margin-left var(--transition-normal);
+}
+
+.jbs-sidebar-collapsed + .jbs-main-viewport {
+    margin-left: var(--sidebar-width-collapsed);
+}
+
+.jbs-content-container {
+    padding: 2rem;
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+    flex-grow: 1;
+}
+
+/* ==========================================================================
+   4. GLASSMORPHISM CORE VISUAL UTILITIES
+   ========================================================================== */
+.glass-panel {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow);
+    transition: background var(--transition-normal), 
+                border var(--transition-normal), 
+                box-shadow var(--transition-normal), 
+                transform var(--transition-fast);
+}
+
+.glass-panel-interactive:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    box-shadow: var(--neon-glow), var(--card-shadow);
+    transform: translateY(-4px);
+}
+
+/* ==========================================================================
+   5. TOP ENTERPRISE SYSTEM NAVIGATION HEADER BAR (NAVBAR)
+   ========================================================================== */
+.jbs-top-navbar {
+    height: var(--navbar-height);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 990;
+    border-radius: 0;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+}
+
+.jbs-navbar-brand-block {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.jbs-brand-logo {
+    font-size: 1.5rem;
+    color: var(--accent-blue);
+    text-shadow: var(--neon-glow);
+}
+
+.jbs-navbar-search-wrapper {
+    position: relative;
+    width: 320px;
+}
+
+.jbs-navbar-search-wrapper input {
+    width: 100%;
+    padding: 0.6rem 1rem 0.6rem 2.5rem;
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-main);
+    font-family: var(--font-primary);
+    transition: all var(--transition-fast);
+}
+
+.jbs-navbar-search-wrapper input:focus {
+    border-color: var(--accent-blue);
+    outline: none;
+    box-shadow: var(--neon-glow);
+}
+
+.jbs-navbar-search-wrapper i {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.jbs-navbar-actions-panel {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+/* ==========================================================================
+   6. PREMIUM COLLAPSIBLE SIDEBAR NAVIGATION MATRIX
+   ========================================================================== */
+.jbs-fixed-sidebar {
+    width: var(--sidebar-width-expanded);
+    height: 100vh;
+    position: fixed;
+    top: 0; left: 0;
+    z-index: 1000;
+    border-radius: 0;
+    border-top: none;
+    border-left: none;
+    border-bottom: none;
+    display: flex;
+    flex-direction: column;
+    transition: width var(--transition-normal);
+}
+
+.jbs-sidebar-collapsed {
+    width: var(--sidebar-width-collapsed);
+}
+
+.jbs-sidebar-header-wrapper {
+    height: var(--navbar-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.25rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.jbs-sidebar-toggle-trigger {
+    background: none; border: none;
+    color: var(--text-main);
+    font-size: 1.15rem;
+    cursor: pointer;
+    width: 36px; height: 36px;
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    transition: background var(--transition-fast);
+}
+
+.jbs-sidebar-toggle-trigger:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--accent-blue);
+}
+
+.jbs-sidebar-menu-list {
+    list-style: none;
+    padding: 1rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex-grow: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* --- THE NEON SNAKE LIGHT NAVIGATION EFFECT LAYER --- */
+.jbs-menu-nav-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+}
+
+.jbs-menu-nav-item i {
+    font-size: 1.15rem;
+    min-width: 24px;
+    text-align: center;
+    transition: transform var(--transition-fast);
+}
+
+.jbs-menu-nav-item:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.03);
+    transform: translateX(4px);
+}
+
+.jbs-menu-nav-item:hover i {
+    transform: scale(1.1);
+    color: var(--accent-blue);
+}
+
+.jbs-menu-nav-item.active-page-node {
+    color: var(--text-main);
+    background: rgba(56, 189, 248, 0.08);
+    font-weight: 600;
+}
+
+/* Master Snake Light Engine Configuration Layer Components */
+.jbs-snake-light-container {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0;
+}
+
+.jbs-menu-nav-item:focus-within .jbs-snake-light-container,
+.jbs-menu-nav-item:active .jbs-snake-light-container,
+.jbs-menu-nav-item.active-page-node .jbs-snake-light-container {
+    opacity: 1;
+}
+
+.jbs-snake-vector {
+    position: absolute;
+    background: linear-gradient(90deg, transparent, var(--accent-blue), #22d3ee, transparent);
+    animation: traceSnakeEdge 4s infinite linear;
+}
+
+@keyframes traceSnakeEdge {
+    0% { top: 0; left: -100%; width: 100%; height: 2px; }
+    25% { top: -100%; right: 0; width: 2px; height: 100%; left: auto; }
+    50% { bottom: 0; right: -100%; width: 100%; height: 2px; top: auto; }
+    75% { bottom: -100%; left: 0; width: 2px; height: 100%; right: auto; }
+    100% { top: 0; left: -100%; width: 100%; height: 2px; }
+}
+
+.jbs-sidebar-collapsed .jbs-menu-text-label,
+.jbs-sidebar-collapsed .jbs-badge-pill {
+    display: none !important;
+}
+
+/* --- Profile Section Anchor inside Sidebar --- */
+.jbs-sidebar-profile-node {
+    padding: 1.25rem;
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    overflow: hidden;
+}
+
+.jbs-profile-avatar-circle {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-blue);
+    object-fit: cover;
+}
+
+.jbs-profile-info-block {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.jbs-profile-name-string {
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.jbs-profile-role-string {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.jbs-sidebar-collapsed .jbs-profile-info-block {
+    display: none !important;
+}
+
+/* ==========================================================================
+   7. THEME TOGGLE ELEMENT SYSTEM BUTTON
+   ========================================================================== */
+.jbs-theme-toggle-btn {
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    transition: all var(--transition-fast);
+}
+
+.jbs-theme-toggle-btn:hover {
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
+    box-shadow: var(--neon-glow);
+    transform: rotate(15deg) scale(1.05);
+}
+
+/* ==========================================================================
+   8. ENTERPRISE CARD GRID SYSTEMS & METRICS BOARDS
+   ========================================================================== */
+.jbs-metrics-board-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.jbs-dashboard-card {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.jbs-card-metric-title {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.jbs-card-metric-value-string {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -0.02em;
+}
+
+/* ==========================================================================
+   9. HIGH-PERFORMANCE UTILITY BUTTON COMPONENT PIPELINES
+   ========================================================================== */
+.jbs-btn-primary, .jbs-btn-success, .jbs-btn-warning, .jbs-btn-danger {
+    font-family: var(--font-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 0.65rem 1.25rem;
+    border-radius: var(--radius-sm);
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    position: relative;
+    overflow: hidden;
+    color: #ffffff !important;
+    transition: all var(--transition-fast);
+}
+
+.jbs-btn-primary { background: var(--accent-gradient); box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); }
+.jbs-btn-primary:hover { box-shadow: 0 6px 20px rgba(2, 132, 199, 0.6), var(--neon-glow); transform: translateY(-1px); }
+
+.jbs-btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); }
+.jbs-btn-success:hover { box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6); transform: translateY(-1px); }
+
+.jbs-btn-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4); }
+.jbs-btn-warning:hover { box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6); transform: translateY(-1px); }
+
+.jbs-btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4); }
+.jbs-btn-danger:hover { box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6); transform: translateY(-1px); }
+
+/* ==========================================================================
+   10. BUSINESS LEDGER TABLES & COMPLIANCE ARCHITECTURES
+   ========================================================================== */
+.jbs-responsive-table-card {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 2rem;
+}
+
+.jbs-data-ledger-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+.jbs-data-ledger-table th {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+    border-bottom: 2px solid var(--glass-border);
+    position: sticky; top: 0;
+}
+
+.jbs-data-ledger-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    transition: background var(--transition-fast);
+}
+
+.jbs-data-ledger-table tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-main);
+}
+
+/* ==========================================================================
+   11. DATA CAPTURE INPUT FORMS
+   ========================================================================== */
+.jbs-form-group {
+    position: relative;
+    margin-bottom: 1.5rem;
+    width: 100%;
+}
+
+.jbs-input-control {
+    width: 100%;
+    font-family: var(--font-primary);
+    font-size: 0.95rem;
+    padding: 0.85rem 1rem;
+    background: rgba(0, 0, 0, 0.12);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-main);
+    transition: all var(--transition-fast);
+}
+
+.jbs-input-control:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: var(--neon-glow), inset 0 1px 2px rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.25);
+}
+
+/* Validation Styling Rules Matrix */
+.jbs-input-control:invalid:not(:placeholder-shown) { border-color: var(--status-danger); }
+.jbs-input-control:valid:not(:placeholder-shown) { border-color: var(--status-success); }
+
+/* ==========================================================================
+   12. SYSTEMS LIVE STATUS TOAST NOTIFICATIONS
+   ========================================================================== */
+.jbs-toast-stack {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    z-index: 2000;
+    max-width: 380px;
+    width: 100%;
+}
+
+.jbs-toast {
+    background: rgba(15, 23, 42, 0.9);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.25rem;
+    color: #ffffff;
+    box-shadow: var(--card-shadow);
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    animation: slideInToast 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInToast {
+    from { transform: translateX(110%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* ==========================================================================
+   13. ASYNCHRONOUS PIPELINE LOADING INDICATORS
+   ========================================================================== */
+.jbs-spinner-vector {
+    width: 40px; height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    border-top-color: var(--accent-blue);
+    animation: cycleSpin 0.85s infinite linear;
+}
+
+@keyframes cycleSpin {
+    to { transform: rotate(360deg); }
+}
+
+.jbs-skeleton-loader {
+    width: 100%;
+    height: 20px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.05) 75%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.5s infinite linear;
+    border-radius: var(--radius-sm);
+}
+
+@keyframes skeletonShimmer {
+    to { background-position: -200% 0; }
+}
+
+/* ==========================================================================
+   14. SYSTEM MASTER BRAND FOOTER CAPTURE BLOCK
+   ========================================================================== */
+.jbs-enterprise-footer {
+    padding: 2rem;
+    margin-top: 4rem;
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.jbs-footer-links {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.jbs-footer-links a {
+    color: inherit;
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.jbs-footer-links a:hover {
+    color: var(--accent-blue);
+}
+
+/* ==========================================================================
+   15. ADAPTIVE MEDIA MATRIX RESPONSIVENESS OVERRIDES
+   ========================================================================== */
+@media (max-width: 1024px) {
+    .jbs-fixed-sidebar {
+        width: var(--sidebar-width-collapsed);
+    }
+    .jbs-main-viewport {
+        margin-left: var(--sidebar-width-collapsed) !important;
+    }
+    .jbs-menu-text-label, .jbs-profile-info-block, .jbs-badge-pill {
+        display: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .jbs-app-wrapper {
+        flex-direction: column;
+    }
+    .jbs-fixed-sidebar {
+        width: 100vw;
+        height: auto;
+        position: relative;
+    }
+    .jbs-sidebar-menu-list {
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 0.5rem;
+    }
+    .jbs-main-viewport {
+        margin-left: 0 !important;
+    }
+    .jbs-navbar-search-wrapper {
+        display: none;
+    }
+    .jbs-metrics-board-grid {
+        grid-template-columns: 1fr;
+    }
+    .jbs-enterprise-footer {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+}
+
+/* ==========================================================================
+   16. MISCELLANEOUS UTILITIES (BADGES & NOTIFICATION PILLS)
+   ========================================================================== */
+.jbs-badge-pill {
+    background: var(--status-danger);
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: 10px;
+    margin-left: auto;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+/* ==========================================================================
+   JBS SYSTEM CORE - SECURE AUTHENTICATION THEME INJECTIONS
+   ========================================================================== */
+
+/* Color Token Variable Architecture Expansion */
+:root {
+    --bg-auth-gradient: radial-gradient(circle at 50% 50%, #030a1e 0%, #01040d 100%);
+    --accent-gold: #d4af37;
+    --accent-gold-gradient: linear-gradient(135deg, #f3e5ab 0%, #d4af37 50%, #aa7c11 100%);
+    --text-gold-glow: rgba(212, 175, 55, 0.4);
+    --border-glass-gold: rgba(212, 175, 55, 0.15);
+}
+
+.auth-viewport {
+    background: var(--bg-auth-gradient);
+    min-height: 100vh;
+    width: 100vw;
+    overflow-x: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Global Navigation Ribbon UI */
+.auth-nav-ribbon {
+    width: 100%;
+    padding: 1.25rem 2.5rem;
+    display: flex;
+    justify-content: flex-end;
+    background: rgba(3, 10, 30, 0.4);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-glass);
+    z-index: 10;
+}
+.nav-links-cluster {
+    display: flex;
+    gap: 2rem;
+}
+.nav-links-cluster a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: var(--transition-smooth);
+}
+.nav-links-cluster a:hover {
+    color: var(--accent-gold);
+    text-shadow: 0 0 8px var(--text-gold-glow);
+}
+
+/* Base Engine Container Centering layout rules */
+.login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-grow: 1;
+    padding: 2rem;
+    z-index: 5;
+}
+
+.login-card {
+    width: 460px;
+    border: 1px solid var(--border-glass-gold);
+    animation: authPanelGateIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes authPanelGateIn {
+    from { opacity: 0; transform: translateY(30px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Branding Matrix Layouts */
+.brand-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+.brand-header h1 {
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #ffffff 40%, #cbd5e1 70%, var(--accent-gold));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.brand-header .logo-icon {
+    font-size: 3rem;
+    background: var(--accent-gold-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 15px var(--text-gold-glow));
+    margin-bottom: 0.5rem;
+}
+.brand-header .subtitle {
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-top: 0.25rem;
+}
+.system-clearance-label {
+    display: inline-block;
+    color: var(--accent-gold);
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 1.5px;
+    margin-top: 0.4rem;
+}
+
+/* Input Container Fields Real-time Animations Engine */
+.input-container {
+    position: relative;
+    width: 100%;
+}
+.input-container input {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    background: rgba(1, 4, 13, 0.6) !important;
+    border: 1px solid var(--border-glass);
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 1rem;
+    transition: var(--transition-smooth);
+}
+.input-container input:focus {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
+}
+
+/* Password View Toggler Rules */
+.password-box input {
+    padding-right: 3.5rem;
+}
+.view-toggle-btn {
+    position: absolute;
+    right: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1.1rem;
+}
+.view-toggle-btn:hover {
+    color: var(--accent-gold);
+}
+
+.operational-tick {
+    position: absolute;
+    right: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-success);
+    opacity: 0;
+    transition: var(--transition-smooth);
+    pointer-events: none;
+}
+
+/* Form utilities alignment lines */
+.form-utilities {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    margin-bottom: 2rem;
+}
+.remember-me-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.remember-me-toggle input {
+    accent-color: var(--accent-gold);
+}
+.recovery-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 600;
+}
+.recovery-link:hover {
+    color: var(--accent-gold);
+    text-shadow: 0 0 6px var(--text-gold-glow);
+}
+
+/* Premium Action Buttons Loading Configurations */
+.submit-auth-btn {
+    width: 100%;
+    padding: 1.1rem;
+    background: var(--accent-gold-gradient) !important;
+    color: #01040d !important;
+    font-weight: 800;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+}
+.submit-auth-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(212, 175, 55, 0.4);
+}
+
+/* Alerts Banners Modifiers */
+.alert-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    animation: alertSlideDown 0.3s ease;
+}
+@keyframes alertSlideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.status-danger { background: var(--accent-danger-panel); color: var(--accent-danger); border: 1px solid rgba(251, 113, 133, 0.2); }
+.status-success { background: var(--accent-success-panel); color: var(--accent-success); border: 1px solid rgba(52, 211, 153, 0.2); }
+
+/* Kinetic Micro Floating Icon Fields Setup */
+.icon-particle-field {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+.icon-float {
+    position: absolute;
+    color: rgba(255, 255, 255, 0.03);
+    font-size: 2.5rem;
+    animation: floatingIcons 24s infinite linear;
+}
+.float-1 { top: 15%; left: 12%; animation-duration: 18s; color: rgba(212, 175, 55, 0.04); }
+.float-2 { top: 75%; left: 8%; animation-duration: 22s; }
+.float-3 { top: 25%; right: 15%; animation-duration: 26s; }
+.float-4 { top: 80%; right: 10%; animation-duration: 20s; color: rgba(212, 175, 55, 0.04); }
+.float-5 { top: 45%; left: 45%; animation-duration: 30s; }
+
+@keyframes floatingIcons {
+    0% { transform: translateY(0) rotate(0deg) scale(1); }
+    50% { transform: translateY(-25px) rotate(180deg) scale(1.08); }
+    100% { transform: translateY(0) rotate(360deg) scale(1); }
+}
+
+/* Loading Spinners Structural Layouts */
+.spinner-loader {
+    width: 22px;
+    height: 22px;
+    border: 3px solid rgba(1, 4, 13, 0.2);
+    border-top-color: #01040d;
+    border-radius: 50%;
+    animation: spinTrack 0.8s infinite linear;
+    margin: 0 auto;
+}
+@keyframes spinTrack { to { transform: rotate(360deg); } }
+
+/* Corporate Footers */
+.corporate-auth-footer {
+    width: 100%;
+    padding: 1.5rem;
+    text-align: center;
+    border-top: 1px solid var(--border-glass);
+    background: rgba(1, 4, 13, 0.8);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    z-index: 10;
+}
+.corporate-auth-footer .meta-line {
+    margin-top: 0.4rem;
+}
+.corporate-auth-footer strong {
+    color: var(--accent-gold);
+}
+
+/* Responsive Adaptive Viewports Media Controllers */
+@media (max-width: 540px) {
+    .login-card { width: 92vw; padding: 1.5rem; }
+    .auth-nav-ribbon { justify-content: center; padding: 1rem; }
+    .nav-links-cluster { gap: 1rem; }
+    .form-utilities { flex-direction: column; gap: 1rem; align-items: flex-start; }
+}
+/* ==========================================================================
+   JOHN BILLING SYSTEM - PREMIUM UNIFIED ENTERPRISE DESIGN FRAMEWORK
+   Architected for Multi-Page Production Clusters under JBS Core Specifications
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. GLOBAL ARCHITECTURE & DESIGN VARIABLE TOKENS
+   -------------------------------------------------------------------------- */
+:root {
+    /* Advanced Color Archetype System (Deep Space Dark Theme) */
+    --bg-primary: #030712;
+    --bg-surface: #0b1329;
+    --bg-panel: rgba(15, 23, 42, 0.45);
+    --border-glass: rgba(255, 255, 255, 0.07);
+    --border-glass-active: rgba(56, 189, 248, 0.3);
+    
+    /* Typography Palette */
+    --text-primary: #f8fafc;
+    --text-muted: #94a3b8;
+    --text-shadow-glow: rgba(56, 189, 248, 0.5);
+
+    /* Functional Color Nodes */
+    --accent-glow: #38bdf8;
+    --accent-glow-gradient: linear-gradient(135deg, #38bdf8 0%, #0369a1 100%);
+    --accent-success: #34d399;
+    --accent-success-panel: rgba(52, 211, 153, 0.12);
+    --accent-danger: #fb7185;
+    --accent-danger-panel: rgba(251, 113, 133, 0.12);
+    --accent-warning: #fbbf24;
+    --accent-warning-panel: rgba(251, 191, 36, 0.12);
+    
+    /* Physics and Structural Tokens */
+    --panel-blur: blur(24px);
+    --radius-premium: 16px;
+    --radius-round: 50px;
+    --transition-smooth: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --shadow-box: 0 12px 40px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* --------------------------------------------------------------------------
+   2. LIGHT THEME POLARITY CONFIGURATION OVERRIDES
+   -------------------------------------------------------------------------- */
+[data-theme="light"] {
+    --bg-primary: #f8fafc;
+    --bg-surface: #ffffff;
+    --bg-panel: rgba(241, 245, 249, 0.65);
+    --border-glass: rgba(15, 23, 42, 0.08);
+    --border-glass-active: rgba(2, 132, 199, 0.4);
+    
+    --text-primary: #0f172a;
+    --text-muted: #64748b;
+    --text-shadow-glow: rgba(2, 132, 199, 0.2);
+
+    --accent-glow: #0284c7;
+    --accent-glow-gradient: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    
+    --shadow-box: 0 12px 30px -10px rgba(15, 23, 42, 0.1);
+}
+
+/* --------------------------------------------------------------------------
+   3. BASE RESET & AMBIENT GRAPHICS SYSTEM
+   -------------------------------------------------------------------------- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: var(--font-stack);
+    transition: background-color 0.4s ease, border-color 0.4s ease, color 0.2s ease;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    overflow-x: hidden;
+    min-height: 100vh;
+}
+
+/* Kinetic Layer Gradients */
+.bg-glow {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(160px);
+    z-index: -1;
+    opacity: 0.22;
+    pointer-events: none;
+    animation: floatingAtmosphere 16s infinite alternate ease-in-out;
+}
+.glow-1 { top: -15%; left: -10%; width: 650px; height: 650px; background: radial-gradient(circle, #38bdf8 0%, transparent 75%); }
+.glow-2 { bottom: -15%; right: -10%; width: 750px; height: 750px; background: radial-gradient(circle, #818cf8 0%, transparent 75%); }
+
+@keyframes floatingAtmosphere {
+    0% { transform: scale(1) translate(0, 0); }
+    100% { transform: scale(1.12) translate(30px, 40px); }
+}
+
+/* --------------------------------------------------------------------------
+   4. PLATFORM STRUCTURAL FRAMEWORK SCROLLENGINES
+   -------------------------------------------------------------------------- */
+.app-container {
+    display: flex;
+    min-height: 100vh;
+    width: 100vw;
+}
+
+.content-viewport {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 2.5rem;
+    overflow-y: auto;
+    max-height: 100vh;
+}
+
+/* Custom Scrollbar Architecture */
+.content-viewport::-webkit-scrollbar { width: 6px; }
+.content-viewport::-webkit-scrollbar-track { background: transparent; }
+.content-viewport::-webkit-scrollbar-thumb { background: var(--border-glass); border-radius: 10px; }
+.content-viewport::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* --------------------------------------------------------------------------
+   5. GLASSMORPHISM SIDEBAR COMPONENT ENGINE
+   -------------------------------------------------------------------------- */
+.sidebar {
+    width: 300px;
+    background: var(--bg-panel);
+    -webkit-backdrop-filter: var(--panel-blur);
+    backdrop-filter: var(--panel-blur);
+    border-right: 1px solid var(--border-glass);
+    padding: 2.5rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: var(--shadow-box);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 1.15rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border-glass);
+}
+
+.brand h2 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--text-primary) 40%, var(--text-muted));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.brand small {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.logo-icon {
+    font-size: 2.4rem;
+    color: var(--accent-glow);
+    filter: drop-shadow(0 0 12px var(--text-shadow-glow));
+}
+
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 2rem;
+    flex-grow: 1;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 1.15rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.95rem 1.25rem;
+    border-radius: var(--radius-premium);
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: 1px solid transparent;
+}
+
+.nav-item i {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+}
+
+.nav-item:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--border-glass);
+    transform: translateX(4px);
+}
+
+.nav-item.active {
+    color: #ffffff;
+    background: var(--accent-glow-gradient);
+    border-color: transparent;
+    box-shadow: 0 8px 24px -6px rgba(56, 189, 248, 0.4);
+}
+
+.sidebar-footer {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-glass);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* --------------------------------------------------------------------------
+   6. HEADER & COMPONENT NAVIGATION MODULES
+   -------------------------------------------------------------------------- */
+.top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+}
+
+.top-header h2 {
+    font-size: 1.85rem;
+    font-weight: 800;
+    letter-spacing: -0.75px;
+}
+
+.search-bar {
+    position: relative;
+    width: 420px;
+}
+
+.search-bar i {
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 0.85rem 1.25rem 0.85rem 3.2rem;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-premium);
+    color: var(--text-primary);
+    font-weight: 500;
+    outline: none;
+    -webkit-backdrop-filter: var(--panel-blur);
+    backdrop-filter: var(--panel-blur);
+}
+
+.search-bar input:focus {
+    border-color: var(--accent-glow);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+.action-btn {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-glass);
+    color: var(--text-primary);
+    padding: 0.85rem;
+    border-radius: var(--radius-premium);
+    cursor: pointer;
+    box-shadow: var(--shadow-box);
+}
+
+.action-btn:hover {
+    border-color: var(--text-muted);
+    transform: scale(1.04);
+}
+
+/* --------------------------------------------------------------------------
+   7. THE STRUCTURAL PREMIUM GLASS-PANEL & GENERAL INTERFACES
+   -------------------------------------------------------------------------- */
+.glass-panel {
+    background: var(--bg-panel);
+    -webkit-backdrop-filter: var(--panel-blur);
+    backdrop-filter: var(--panel-blur);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-premium);
+    padding: 2.25rem;
+    box-shadow: var(--shadow-box);
+}
+
+.divider {
+    border: 0;
+    height: 1px;
+    background: var(--border-glass);
+    margin: 1.75rem 0;
+}
+
+/* High Fidelity Corporate Button Core Matrix */
+.btn {
+    padding: 0.9rem 1.75rem;
+    border-radius: var(--radius-premium);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    text-decoration: none;
+    box-shadow: var(--shadow-box);
+}
+
+.btn-primary {
+    background: var(--accent-glow-gradient);
+    color: #ffffff !important;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border-color: var(--border-glass);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   8. INDEX.HTML (LANDING PAGE SPECIFIC ARCHITECTURE)
+   -------------------------------------------------------------------------- */
+.hero-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.4) 0%, rgba(30, 41, 59, 0.3) 100%);
+    border: 1px solid var(--border-glass);
+    padding: 6rem 4rem;
+    border-radius: 24px;
+    text-align: center;
+    margin-bottom: 4rem;
+    box-shadow: var(--shadow-box);
+}
+
+.hero-card h1 {
+    font-size: 4.2rem;
+    font-weight: 900;
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, #ffffff 20%, #cbd5e1 50%, var(--text-muted) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+}
+
+.stat-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-glass);
+    padding: 2.5rem 2rem;
+    border-radius: var(--radius-premium);
+    text-align: center;
+    box-shadow: var(--shadow-box);
+}
+
+.stat-card i {
+    font-size: 2.8rem;
+    margin-bottom: 1.25rem;
+    background: var(--accent-glow-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stat-card h3 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 0.4rem;
+}
+
+/* --------------------------------------------------------------------------
+   9. DASHBOARD.HTML (ADMIN INTELLIGENCE SPECIFIC INTERFACES)
+   -------------------------------------------------------------------------- */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.metric-box {
+    background: var(--bg-panel);
+    padding: 2rem;
+    border-radius: var(--radius-premium);
+    border: 1px solid var(--border-glass);
+    box-shadow: var(--shadow-box);
+}
+
+.metric-box h2 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin: 0.6rem 0;
+}
+
+.trend-indicator {
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+/* --------------------------------------------------------------------------
+   10. BILLING.HTML (BILLING MODULE SYSTEM DESIGNS)
+   -------------------------------------------------------------------------- */
+.billing-grid {
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+    gap: 2.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 0.9rem 1.15rem;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border-glass);
+    color: #ffffff;
+    border-radius: 10px;
+    outline: none;
+    font-size: 0.95rem;
+}
+
+.form-group input:focus {
+    border-color: var(--accent-glow);
+}
+
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+}
+
+.preview-table th {
+    text-align: left;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border-glass);
+    padding-bottom: 0.75rem;
+}
+
+.preview-table td {
+    padding: 1rem 0;
+    font-size: 0.95rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* --------------------------------------------------------------------------
+   11. DATA TABLES MATRIX INFRASTRUCTURE DESIGN
+   -------------------------------------------------------------------------- */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th {
+    text-align: left;
+    padding: 1.15rem 1.5rem;
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border-glass);
+}
+
+.data-table td {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-glass);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.data-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* Status Pill Modules Configuration */
+.status-pill {
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-block;
+}
+.status-success { background: var(--accent-success-panel); color: var(--accent-success); border: 1px solid rgba(52, 211, 153, 0.2); }
+.status-danger { background: var(--accent-danger-panel); color: var(--accent-danger); border: 1px solid rgba(251, 113, 133, 0.2); }
+.status-warning { background: var(--accent-warning-panel); color: var(--accent-warning); border: 1px solid rgba(251, 191, 36, 0.2); }
+
+/* --------------------------------------------------------------------------
+   12. ABOUT.HTML & FORUMS SPECIFIC CUSTOM COMPONENT WRAPPERS
+   -------------------------------------------------------------------------- */
+.about-layout {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 3rem;
+}
+
+.timeline {
+    margin-top: 2rem;
+    border-left: 2px solid var(--border-glass);
+    padding-left: 2rem;
+}
+
+.node {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.node::before {
+    content: '';
+    position: absolute;
+    left: calc(-2rem - 7px);
+    top: 4px;
+    width: 12px;
+    height: 12px;
+    background: var(--accent-glow);
+    border-radius: 50%;
+    box-shadow: 0 0 14px var(--accent-glow);
+}
+
+.founder-img {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    border: 4px solid var(--accent-glow);
+    display: block;
+    margin: 0 auto 1.5rem auto;
+    object-fit: cover;
+    box-shadow: var(--shadow-box);
+}
+
+.badge {
+    background: var(--accent-warning-panel);
+    color: var(--accent-warning);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+/* Responsive Scaling Breakpoint Framework */
+@media (max-width: 1200px) {
+    .app-container { flex-direction: column; }
+    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border-glass); }
+    .billing-grid, .about-layout, .scanner-layout { grid-template-columns: 1fr; }
+    .nav-menu { flex-direction: row; flex-wrap: wrap; }
+}

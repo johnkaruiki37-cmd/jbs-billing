@@ -1,0 +1,485 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JBS - Social Enterprise Community Hub</title>
+    <link rel="stylesheet" href="shared.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --glass-bg: rgba(30, 41, 59, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-blue: #38bdf8;
+            --accent-gold: #d4af37;
+        }
+
+        .hub-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr 300px;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .hub-grid { grid-template-columns: 1fr; }
+            .hub-sidebar-left, .hub-sidebar-right { display: none; }
+        }
+
+        /* Glassmorphic Structural Components */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Category Menu Pills */
+        .category-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .category-pill:hover, .category-pill.active {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        /* Social Media Style Feed Cards */
+        .post-card {
+            animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .avatar-frame {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-blue);
+            object-fit: cover;
+            position: relative;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border: 2px solid #0f172a;
+            border-radius: 50%;
+            position: absolute;
+            bottom: 0; right: 0;
+        }
+
+        .badge-pill {
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            margin-left: 6px;
+        }
+        .badge-admin { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .badge-verified { background: rgba(212, 175, 55, 0.15); color: var(--accent-gold); }
+
+        /* Social Interactions Row */
+        .interaction-btn {
+            background: transparent;
+            border: none;
+            color: #64748b;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+        .interaction-btn:hover { color: var(--accent-blue); }
+        .interaction-btn.liked { color: #f43f5e; }
+
+        /* Floating Action Button (FAB) */
+        .fab-trigger {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            z-index: 999;
+            transition: transform 0.2s;
+        }
+        .fab-trigger:hover { transform: scale(1.1); }
+
+        /* Modal Overlay Configuration */
+        .composer-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(2, 6, 23, 0.8);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+   <div class="jbs-canvas-backdrop"><div class="jbs-wave-layer"></div></div>
+    <div class="jbs-app-wrapper">
+        <aside class="jbs-fixed-sidebar glass-panel" id="sidebar">
+            <div class="jbs-sidebar-header-wrapper">
+                <div class="jbs-navbar-brand-block">
+                    <i class="fa-solid fa-shield-halved jbs-brand-logo"></i>
+                    <span class="jbs-profile-name-string" style="font-weight:700;">JBS TERMINAL</span>
+                </div>
+            </div>
+            <nav class="jbs-sidebar-menu-list">
+                <a href="index.html" class="jbs-menu-nav-item"><i class="fa-solid fa-house"></i><span class="jbs-menu-text-label">Home Landing</span></a>
+                <a href="dashboard.html" class="jbs-menu-nav-item"><i class="fa-solid fa-chart-pie"></i><span class="jbs-menu-text-label">Admin Dashboard</span></a>
+                <a href="billing.html" class="jbs-menu-nav-item"><i class="fa-solid fa-file-invoice-dollar"></i><span class="jbs-menu-text-label">Billing & Invoices</span></a>
+                <a href="inventory.html" class="jbs-menu-nav-item"><i class="fa-solid fa-boxes-stacked"></i><span class="jbs-menu-text-label">Inventory Control</span></a>
+                <a href="scanner.html" class="jbs-menu-nav-item active-page-node"><i class="fa-solid fa-barcode"></i><span class="jbs-menu-text-label">Barcode Scanner</span></a>
+                <a href="mpesa.html" class="jbs-menu-nav-item"><i class="fa-solid fa-wallet"></i><span class="jbs-menu-text-label">M-Pesa Ledger</span></a>
+                <a href="forum.html" class="jbs-menu-nav-item"><i class="fa-solid fa-users"></i><span class="jbs-menu-text-label">Business Forum</span></a>
+                <a href="about.html" class="jbs-menu-nav-item"><i class="fa-solid fa-circle-info"></i><span class="jbs-menu-text-label">About System</span></a>
+            </nav>
+        </aside>
+  
+    <main class="jbs-main-container">
+        <div class="glass-panel" style="display: flex; gap: 1rem; align-items: center; padding: 0.75rem 1.25rem;">
+            <i class="fa-solid fa-magnifying-glass" style="color: #64748b;"></i>
+            <input type="text" id="global-search" class="jbs-input-control" placeholder="Search discussions, business tags, or trending #hashtags..." style="border: none; background: transparent; padding: 0;">
+        </div>
+
+        <div class="hub-grid">
+            <div class="hub-sidebar-left">
+                <div class="glass-panel" style="padding: 0.75rem;">
+                    <h4 style="margin: 0.5rem 0 1rem 0.75rem; color: #64748b; text-transform: uppercase; font-size: 0.75rem;">Forum Segments</h4>
+                    <nav style="display: flex; flex-direction: column; gap: 4px;">
+                        <div class="category-pill active" onclick="switchCategory('All')"><i class="fa-solid fa-globe"></i> Global Feed</div>
+                        <div class="category-pill" onclick="switchCategory('Business Advice')"><i class="fa-solid fa-briefcase"></i> Business Advice</div>
+                        <div class="category-pill" onclick="switchCategory('Accounting')"><i class="fa-solid fa-calculator"></i> Accounting</div>
+                        <div class="category-pill" onclick="switchCategory('Inventory Management')"><i class="fa-solid fa-boxes-stacked"></i> Logistics / Inventory</div>
+                        <div class="category-pill" onclick="switchCategory('Marketing')"><i class="fa-solid fa-rectangle-ad"></i> Marketing Growth</div>
+                        <div class="category-pill" onclick="switchCategory('Tax & Compliance')"><i class="fa-solid fa-gavel"></i> Tax & Compliance</div>
+                        <div class="category-pill" onclick="switchCategory('General Discussions')"><i class="fa-solid fa-comments"></i> Casual General</div>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="hub-feed-column">
+                <div class="glass-panel" style="display: flex; gap: 1rem; align-items: center;">
+                    <div style="position: relative;">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" class="avatar-frame" alt="User Profile">
+                        <div class="status-dot"></div>
+                    </div>
+                    <button onclick="openComposerModal()" style="width: 100%; text-align: left; background: rgba(15,23,42,0.4); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.85rem; color: #64748b; cursor: pointer; font-size: 0.95rem;">
+                        Broadcast business updates or questions to the network...
+                    </button>
+                </div>
+
+                <div id="posts-feed-container"></div>
+            </div>
+
+            <div class="hub-sidebar-right">
+                <div class="glass-panel">
+                    <h3 style="font-size: 1rem; margin-top: 0; color: var(--accent-gold);"><i class="fa-solid fa-arrow-trend-up"></i> Trending Topics</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 1rem;">
+                        <div>
+                            <span style="color: var(--accent-blue); font-weight: 600; font-size: 0.9rem; cursor: pointer;">#KRAEfiling2026</span>
+                            <div style="font-size: 0.75rem; color: #64748b;">142 updates generated today</div>
+                        </div>
+                        <div>
+                            <span style="color: var(--accent-blue); font-weight: 600; font-size: 0.9rem; cursor: pointer;">#WholesaleMargins</span>
+                            <div style="font-size: 0.75rem; color: #64748b;">94 active business discussions</div>
+                        </div>
+                        <div>
+                            <span style="color: var(--accent-blue); font-weight: 600; font-size: 0.9rem; cursor: pointer;">#AmoxicillinShortage</span>
+                            <div style="font-size: 0.75rem; color: #64748b;">48 medical pharmacy entries</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel">
+                    <h3 style="font-size: 1rem; margin-top: 0; color: #10b981;"><i class="fa-solid fa-circle-dot"></i> Active Operators Online</h3>
+                    <div id="online-users-list" style="display: flex; flex-direction: column; gap: 12px; margin-top: 1rem;">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <button class="fab-trigger" onclick="openComposerModal()"><i class="fa-solid fa-pen-fancy"></i></button>
+
+    <div id="post-modal" class="composer-modal">
+        <div class="glass-panel" style="width: 100%; max-width: 550px; background: #1e293b; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                <h3 style="margin: 0; font-size: 1.2rem;">Compose Global Post</h3>
+                <i class="fa-solid fa-xmark" onclick="closeComposerModal()" style="cursor: pointer; font-size: 1.25rem; color: #64748b;"></i>
+            </div>
+            <form id="modal-post-form">
+                <div class="jbs-form-group">
+                    <label>Channel Destination Category</label>
+                    <select id="post-category" class="jbs-input-control">
+                        <option value="Business Advice">Business Advice</option>
+                        <option value="Accounting">Accounting</option>
+                        <option value="Inventory Management">Inventory Management</option>
+                        <option value="Marketing">Marketing Growth</option>
+                        <option value="Tax & Compliance">Tax & Compliance</option>
+                        <option value="General Discussions">General Discussions</option>
+                    </select>
+                </div>
+                <div class="jbs-form-group">
+                    <label>Your Message</label>
+                    <textarea id="post-content" class="jbs-input-control" rows="5" placeholder="Share strategies, tag users with @username, or request metrics advice..." required style="resize: none; font-family: inherit;"></textarea>
+                </div>
+                <div class="jbs-form-group">
+                    <label>Simulate Product Image Attachment Reference</label>
+                    <input type="text" id="post-image-url" class="jbs-input-control" placeholder="Paste optional web image URL link asset...">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+                    <button type="button" class="jbs-btn-primary" style="background: #475569; color: white;" onclick="closeComposerModal()">Cancel</button>
+                    <button type="submit" class="jbs-btn-primary">Transmit Broadcast</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <audio id="notif-beep" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav" preload="auto"></audio>
+
+    <script>
+        const socket = io();
+        let currentSelectedSegment = "All";
+        let unreadNotificationsCount = 0;
+
+        // Current simulated structural profile properties mapping database constraints
+        const activeProfileUser = {
+            id: "USR-094",
+            user: "Dr_Kabuthi",
+            full_name: "Dr. John Kabuthi",
+            business_name: "JBS Enterprise Solutions",
+            badge: "Admin",
+            avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80"
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadGlobalFeedStream();
+            initializeSocketListeners();
+            setupSearchEngine();
+
+            // Request Native Browser Notification Authorizations safely
+            if (Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        });
+
+        function initializeSocketListeners() {
+            // Catches pipeline streaming post signals broadcast by node sockets real-time
+            socket.on('incoming_forum_post', (newPostPayload) => {
+                triggerBrowserNotificationPopup(newPostPayload);
+                if (currentSelectedSegment === "All" || currentSelectedSegment === newPostPayload.category) {
+                    injectPostCardIntoDom(newPostPayload, true);
+                }
+            });
+
+            // Real-Time Reaction Matrix Listeners
+            socket.on('post_reaction_updated', ({ postId, count }) => {
+                const targetCountSpan = document.getElementById(`reaction-count-${postId}`);
+                if (targetCountSpan) targetCountSpan.innerText = count;
+            });
+
+            // Live Online Operators Registry Consumer Updates
+            socket.on('online_operators_matrix', (userList) => {
+                const listContainer = document.getElementById('online-users-list');
+                if (!listContainer) return;
+                listContainer.innerHTML = userList.map(u => `
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="position:relative;">
+                            <img src="${u.avatar}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;">
+                            <div class="status-dot"></div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.85rem; font-weight:600; color:#fff;">@${u.user}</div>
+                            <div style="font-size:0.7rem; color:#64748b;">${u.business_name}</div>
+                        </div>
+                    </div>
+                `).join('');
+            });
+
+            // Announce presence immediately to the signaling loop on link establish
+            socket.emit('operator_handshake_join', activeProfileUser);
+        }
+
+        async function loadGlobalFeedStream() {
+            try {
+                const res = await fetch('/api/forum/posts');
+                const posts = await res.json();
+                const container = document.getElementById('posts-feed-container');
+                container.innerHTML = "";
+
+                const subset = currentSelectedSegment === "All" ? posts : posts.filter(p => p.category === currentSelectedSegment);
+                
+                if(!subset.length) {
+                    container.innerHTML = `<div class="glass-panel" style="text-align:center; color:#64748b; padding:3rem 1rem;">No community posts discovered inside segment directory '${currentSelectedSegment}'.</div>`;
+                    return;
+                }
+
+                subset.forEach(p => injectPostCardIntoDom(p, false));
+            } catch (err) {
+                console.error("Critical stream pipeline broken down.", err);
+            }
+        }
+
+        function injectPostCardIntoDom(post, prependToFeed = false) {
+            const container = document.getElementById('posts-feed-container');
+            const card = document.createElement('div');
+            card.className = "glass-panel post-card";
+            card.id = `post-element-node-${post.id}`;
+            card.style.padding = "1.5rem";
+
+            const badgeClass = post.author.badge === 'Admin' ? 'badge-admin' : 'badge-verified';
+            const optionalImageBlock = post.image_url ? `<img src="${post.image_url}" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px; margin:1rem 0;" alt="Media Attachment">` : '';
+
+            card.innerHTML = `
+                <div style="display:flex; gap:12px; align-items:flex-start;">
+                    <img src="${post.author.avatar}" style="width:44px; height:44px; border-radius:50%; object-fit:cover;">
+                    <div style="flex:1;">
+                        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                            <strong style="color:#fff; font-size:0.95rem;">${post.author.full_name}</strong>
+                            <span style="color:var(--accent-blue); font-size:0.85rem; margin-left:2px;">@${post.author.user}</span>
+                            <span class="badge-pill ${badgeClass}">${post.author.badge}</span>
+                        </div>
+                        <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">${post.author.business_name} &bull; ${post.created_at}</div>
+                    </div>
+                    <span style="font-size:0.75rem; background:rgba(56,189,248,0.08); color:var(--accent-blue); padding:4px 8px; border-radius:4px;">${post.category}</span>
+                </div>
+                
+                <p style="margin:1rem 0 0.5rem 0; color:#e2e8f0; font-size:0.95rem; line-height:1.5; white-space:pre-wrap;">${parseHashtagsAndMentions(post.content)}</p>
+                
+                ${optionalImageBlock}
+
+                <hr style="border:0; border-top:1px solid var(--glass-border); margin:1rem 0 0.75rem 0;">
+                
+                <div style="display:flex; gap:2rem;">
+                    <button class="interaction-btn" onclick="executeLikeTransaction('${post.id}')">
+                        <i class="fa-solid fa-heart"></i> Like (<span id="reaction-count-${post.id}">${post.likes}</span>)
+                    </button>
+                    <button class="interaction-btn" style="cursor:default;">
+                        <i class="fa-solid fa-comment"></i> Comments (0)
+                    </button>
+                    <button class="interaction-btn" onclick="navigator.clipboard.writeText(window.location.href); alert('Internal system path copied to operational clipboard.');">
+                        <i class="fa-solid fa-share-node"></i> Share
+                    </button>
+                </div>
+            `;
+
+            if (prependToFeed && container.firstChild) {
+                container.insertBefore(card, container.firstChild);
+            } else {
+                container.appendChild(card);
+            }
+        }
+
+        function parseHashtagsAndMentions(text) {
+            return text
+                .replace(/#(\w+)/g, '<span style="color:var(--accent-gold); font-weight:600; cursor:pointer;">#$1</span>')
+                .replace(/@(\w+)/g, '<span style="color:var(--accent-blue); font-weight:600; cursor:pointer;">@$1</span>');
+        }
+
+        async function executeLikeTransaction(postId) {
+            try {
+                const res = await fetch(`/api/forum/like/${postId}`, { method: 'POST' });
+                if(res.ok) {
+                    // Optimized update locally instantly
+                    const countSpan = document.getElementById(`reaction-count-${postId}`);
+                    if(countSpan) countSpan.innerText = parseInt(countSpan.innerText) + 1;
+                }
+            } catch(e){}
+        }
+
+        function setupSearchEngine() {
+            document.getElementById('global-search').addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                const postCards = document.querySelectorAll('.post-card');
+                
+                postCards.forEach(card => {
+                    const textContext = card.innerText.toLowerCase();
+                    card.style.display = textContext.includes(query) ? 'block' : 'none';
+                });
+            });
+        }
+
+        function switchCategory(targetSegment) {
+            currentSelectedSegment = targetSegment;
+            document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            loadGlobalFeedStream();
+        }
+
+        function openComposerModal() { document.getElementById('post-modal').style.display = 'flex'; document.getElementById('post-content').focus(); }
+        function closeComposerModal() { document.getElementById('post-modal').style.display = 'none'; document.getElementById('modal-post-form').reset(); }
+
+        document.getElementById('modal-post-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                author: activeProfileUser,
+                category: document.getElementById('post-category').value,
+                content: document.getElementById('post-content').value,
+                image_url: document.getElementById('post-image-url').value
+            };
+
+            try {
+                const res = await fetch('/api/forum/create-post', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                if(res.ok) {
+                    closeComposerModal();
+                    // System relies directly on WebSockets fallback broadcast pipeline injection
+                }
+            } catch(err){}
+        });
+
+        function triggerBrowserNotificationPopup(post) {
+            document.getElementById('notif-beep').play().catch(() => {});
+            
+            // Increment UI badges dynamically
+            unreadNotificationsCount++;
+            const badge = document.getElementById('bell-badge');
+            badge.innerText = unreadNotificationsCount;
+            badge.style.display = 'block';
+
+            // Show system OS native popup window message frame
+            if (Notification.permission === 'granted') {
+                new Notification(`JBS Community: @${post.author.user}`, {
+                    body: `${post.content.substring(0, 60)}... Inside Category: ${post.category}`,
+                    icon: post.author.avatar
+                });
+            }
+        }
+    </script>
+</body>
+</html>
