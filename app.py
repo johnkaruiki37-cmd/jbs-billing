@@ -679,3 +679,6 @@ def serve_login_default():
 @app.route('/index.html')
 def serve_dashboard_home():
     return send_from_directory('.', 'index.html')
+    @app.route('/')
+def serve_login_default():
+    return send_from_directory('.', 'login.html')
