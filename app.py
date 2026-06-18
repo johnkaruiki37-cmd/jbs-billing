@@ -631,3 +631,18 @@ def serve_login():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+    from flask import Flask, request, jsonify, send_from_directory
+
+# (Your existing setup config logic goes here...)
+
+@app.route('/api/login', methods=['POST'])
+def handle_login_verification():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    # Simple verification logic placeholder 
+    if username == 'admin' and password == 'admin': # Change this to your secure check!
+        return jsonify({"success": True, "message": "Verification Successful"})
+    else:
+        return jsonify({"success": False, "message": "Invalid Secure Key Credentials"}), 401
