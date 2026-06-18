@@ -472,6 +472,23 @@
                 triggerNotification("Security recovery transactional protocol failure exception encountered.", "danger");
             }
         }
+        // NEW UNIFIED FLASK ENGINE TARGET
+fetch('/api/login', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ username: username, password: password })
+})
+.then(response => response.json())
+.then(data => {
+    if (data.success) {
+        // Redirect smoothly to your home dashboard landing page matrix
+        window.location.href = '/index.html'; 
+    } else {
+        alert("Authorization Denied: " + data.message);
+    }
+});
     </script>
 </body>
 </html>
