@@ -902,7 +902,20 @@ def handle_realtime_post(data):
     db.session.add(new_post)
     db.session.commit()
 
-    # Broad emission structure containing full payload context definitions
+  # --- FIX AND STABILIZE USER DATA EXT_PULL LOGIC ---
+    if user:
+        author_username = user.username
+        author_fullname = user.full_name
+        author_img = user.profile_image
+        author_biz = user.business_name
+        author_badge = user.badge
+    else:
+        author_username = "admin"
+        author_fullname = "System Administrator"
+        author_img = "default-avatar.png"
+        author_biz = "JBS Core HQ"
+        author_badge = "Admin"
+
     feed_payload = {
         "id": new_post.id,
         "content": new_post.content,
@@ -912,92 +925,29 @@ def handle_realtime_post(data):
         "likes_count": 0,
         "comments_count": 0,
         "user": {
-            "username": user.username if user else "admin",
-            "full_name": user.full_name if user else "System Administrator",
-            "profile_image": user.profile_image if user else "default-avatar.png",
-            "business_name": user.business_name if user else "JBS Core HQ",
-            "badge": user.badge if user else "Admin"
+            "username": author_username,
+            "full_name": author_fullname,
+            "profile_image": author_img,
+            "business_name": author_biz,
+            "badge": author_badge
         }
     }
+
     # Broadcast instantly to every user currently online across the platform
     emit('new-post-broadcast', feed_payload, broadcast=True)
     
     # Broadcast across system to slide out immediate dashboard push updates
     emit('global-system-alert', {
         "title": "New Community Post",
-        "message": f"{feed_payload['user']['full_name']} posted in {new_post.category}"
+        "message": f"{author_fullname} posted in {new_post.category}"
     }, broadcast=True, include_self=False)
 
-@socketio.on('like-post')
-def handle_realtime_like(data):
-    uid = session.get('user_id', 1)
-    pid = data.get('post_id')
-    
-    existing_like = Like.query.filter_by(post_id=pid, user_id=uid).first()
-    post = Post.query.get(pid)
-    
-    if existing_like:
-        db.session.delete(existing_like)
-        action = "unliked"
-    else:
-        new_like = Like(post_id=pid, user_id=uid)
-        db.session.add(new_like)
-        action = "liked"
-        
-        # Trigger real-time tracking notification alert rule to post owner
-        if post.user_id != uid:
-            liker = User.query.get(uid)
-            note = Notification(
-                recipient_id=post.user_id,
-                sender_id=uid,
-                message=f"{liker.full_name if liker else 'Admin'} liked your business post."
-            )
-            db.session.add(note)
-            
-    db.session.commit()
-    
-    # Broadcast updated like metrics metrics to all live client visualizers
-    total_likes = Like.query.filter_by(post_id=pid).count()
-    emit('like-update-broadcast', {"post_id": pid, "total_likes": total_likes}, broadcast=True)
-
-@socketio.on('comment-post')
-def handle_realtime_comment(data):
-    uid = session.get('user_id', 1)
-    pid = data.get('post_id')
-    text = data.get('comment')
-    
-    user = User.query.get(uid)
-    new_comment = Comment(post_id=pid, user_id=uid, comment=text)
-    db.session.add(new_comment)
-    
-    post = Post.query.get(pid)
-    if post.user_id != uid:
-        note = Notification(
-            recipient_id=post.user_id,
-            sender_id=uid,
-            message=f"{user.full_name if user else 'Admin'} commented: '{text[:30]}...'"
-        )
-        db.session.add(note)
-        
-    db.session.commit()
-
-    comment_payload = {
-        "post_id": pid,
-        "comment": text,
-        "username": user.username if user else "admin",
-        "full_name": user.full_name if user else "System Administrator",
-        "created_at": new_comment.created_at.strftime('%H:%M')
-    }
-    emit('comment-update-broadcast', comment_payload, broadcast=True)
-
 # ==============================================================================
-# BOOT EXECUTION LAYER MAPPING OVERRIDES
+# UNIFIED ENGINE EXECUTION GATEWAY (VERY BOTTOM OF YOUR FILE)
 # ==============================================================================
-
 if __name__ == '__main__':
     with app.app_context():
-        # Auto-compile table structures inside your MySQL database schema instance
         db.create_all()
     port = int(os.environ.get('PORT', 5000))
-    # CRITICAL: Replace app.run with socketio.run to enable WebSocket event loops
+    # CRITICAL: This MUST use socketio.run instead of app.run to prevent 500 errors!
     socketio.run(app, host='0.0.0.0', port=port)
