@@ -742,3 +742,262 @@ def handle_register_action():
 @app.route('/index')
 def dashboard_home():
     return send_from_directory('.', 'index.html')
+    import os
+from datetime import datetime
+from flask import Flask, request, jsonify, render_template, redirect, session, send_from_directory
+from flask_sqlalchemy import SQLAlchemy
+from flask_socketio import SocketIO, emit
+
+app = Flask(__name__, static_folder='.', static_url_path='', template_folder='.')
+app.config['SECRET_KEY'] = 'jbs_secure_matrix_secret_key_2026'
+
+# --- MYSQL DATABASE CONNECTION SETUP ---
+# Update with your live Kinsta, Aiven, or local MySQL credentials
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:your_password@localhost/jbs_database'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# ==============================================================================
+# DATABASE RELATIONSHIP SCHEMAS
+# ==============================================================================
+
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    full_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    profile_image = db.Column(db.String(255), default='default-avatar.png')
+    business_name = db.Column(db.String(100))
+    business_category = db.Column(db.String(50), default='General')
+    badge = db.Column(db.String(30), default='Member') # Admin, Moderator, Verified Business, Member
+    posts = db.relationship('Post', backref='author', lazy=True)
+
+class Post(db.Model):
+    __tablename__ = 'posts'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    image_url = db.Column(db.String(255), nullable=True)
+    category = db.Column(db.String(50), default='General Discussions')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    likes = db.relationship('Like', backref='post', lazy=True)
+    comments = db.relationship('Comment', backref='post', lazy=True)
+
+class Comment(db.Model):
+    __tablename__ = 'comments'
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    comment = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User')
+
+class Like(db.Model):
+    __tablename__ = 'likes'
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    id = db.Column(db.Integer, primary_key=True)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    message = db.Column(db.String(255), nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    sender = db.relationship('User', foreign_keys=[sender_id])
+
+# ==============================================================================
+# FORUM LAYOUT DIRECT RESTRAINTS
+# ==============================================================================
+
+@app.route('/community-hub-forum.html')
+@app.route('/forum')
+def serve_forum_view():
+    # Enforce basic fallback route protection
+    if 'user_id' not in session and session.get('username') != 'admin':
+        return redirect('/')
+    return send_from_directory('.', 'community-hub-forum.html')
+
+# ==============================================================================
+# REST API CONTROLLERS
+# ==============================================================================
+
+@app.route('/get-posts', methods=['GET'])
+def get_posts():
+    posts = Post.query.order_by(Post.created_at.desc()).all()
+    posts_data = []
+    for p in posts:
+        posts_data.append({
+            "id": p.id,
+            "content": p.content,
+            "image_url": p.image_url,
+            "category": p.category,
+            "created_at": p.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            "likes_count": len(p.likes),
+            "comments_count": len(p.comments),
+            "user": {
+                "username": p.author.username,
+                "full_name": p.author.full_name,
+                "profile_image": p.author.profile_image,
+                "business_name": p.author.business_name,
+                "badge": p.author.badge
+            }
+        })
+    return jsonify({"posts": posts_data})
+
+@app.route('/upload-image', methods=['POST'])
+def upload_image():
+    if 'file' not in request.files:
+        return jsonify({"error": "No data stream payload"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "Empty reference tracking identifier"}), 400
+        
+    # Standard security storage target mapping rule inside flat root folder
+    filename = f"upload_{int(datetime.utcnow().timestamp())}_{file.filename}"
+    file.save(os.path.join('.', filename))
+    return jsonify({"image_url": f"/{filename}"})
+
+@app.route('/notifications', methods=['GET'])
+def fetch_notifications():
+    uid = session.get('user_id', 1) # Default fallback to base user for sandbox testing
+    notes = Notification.query.filter_by(recipient_id=uid).order_by(Notification.created_at.desc()).all()
+    return jsonify([{
+        "id": n.id,
+        "message": n.message,
+        "is_read": n.is_read,
+        "created_at": n.created_at.strftime('%H:%M'),
+        "sender": n.sender.username
+    } for n in notes])
+
+@app.route('/mark-notification-read', methods=['POST'])
+def mark_read():
+    nid = request.json.get('id')
+    note = Notification.query.get(nid)
+    if note:
+        note.is_read = True
+        db.session.commit()
+    return jsonify({"status": "success"})
+
+# ==============================================================================
+# REAL-TIME FLASK-SOCKETIO SIGNAL HANDLERS
+# ==============================================================================
+
+@socketio.on('create-post')
+def handle_realtime_post(data):
+    uid = session.get('user_id', 1) 
+    user = User.query.get(uid)
+    
+    new_post = Post(
+        user_id=uid,
+        content=data.get('content'),
+        image_url=data.get('image_url'),
+        category=data.get('category', 'General Discussions')
+    )
+    db.session.add(new_post)
+    db.session.commit()
+
+    # Broad emission structure containing full payload context definitions
+    feed_payload = {
+        "id": new_post.id,
+        "content": new_post.content,
+        "image_url": new_post.image_url,
+        "category": new_post.category,
+        "created_at": new_post.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        "likes_count": 0,
+        "comments_count": 0,
+        "user": {
+            "username": user.username if user else "admin",
+            "full_name": user.full_name if user else "System Administrator",
+            "profile_image": user.profile_image if user else "default-avatar.png",
+            "business_name": user.business_name if user else "JBS Core HQ",
+            "badge": user.badge if user else "Admin"
+        }
+    }
+    # Broadcast instantly to every user currently online across the platform
+    emit('new-post-broadcast', feed_payload, broadcast=True)
+    
+    # Broadcast across system to slide out immediate dashboard push updates
+    emit('global-system-alert', {
+        "title": "New Community Post",
+        "message": f"{feed_payload['user']['full_name']} posted in {new_post.category}"
+    }, broadcast=True, include_self=False)
+
+@socketio.on('like-post')
+def handle_realtime_like(data):
+    uid = session.get('user_id', 1)
+    pid = data.get('post_id')
+    
+    existing_like = Like.query.filter_by(post_id=pid, user_id=uid).first()
+    post = Post.query.get(pid)
+    
+    if existing_like:
+        db.session.delete(existing_like)
+        action = "unliked"
+    else:
+        new_like = Like(post_id=pid, user_id=uid)
+        db.session.add(new_like)
+        action = "liked"
+        
+        # Trigger real-time tracking notification alert rule to post owner
+        if post.user_id != uid:
+            liker = User.query.get(uid)
+            note = Notification(
+                recipient_id=post.user_id,
+                sender_id=uid,
+                message=f"{liker.full_name if liker else 'Admin'} liked your business post."
+            )
+            db.session.add(note)
+            
+    db.session.commit()
+    
+    # Broadcast updated like metrics metrics to all live client visualizers
+    total_likes = Like.query.filter_by(post_id=pid).count()
+    emit('like-update-broadcast', {"post_id": pid, "total_likes": total_likes}, broadcast=True)
+
+@socketio.on('comment-post')
+def handle_realtime_comment(data):
+    uid = session.get('user_id', 1)
+    pid = data.get('post_id')
+    text = data.get('comment')
+    
+    user = User.query.get(uid)
+    new_comment = Comment(post_id=pid, user_id=uid, comment=text)
+    db.session.add(new_comment)
+    
+    post = Post.query.get(pid)
+    if post.user_id != uid:
+        note = Notification(
+            recipient_id=post.user_id,
+            sender_id=uid,
+            message=f"{user.full_name if user else 'Admin'} commented: '{text[:30]}...'"
+        )
+        db.session.add(note)
+        
+    db.session.commit()
+
+    comment_payload = {
+        "post_id": pid,
+        "comment": text,
+        "username": user.username if user else "admin",
+        "full_name": user.full_name if user else "System Administrator",
+        "created_at": new_comment.created_at.strftime('%H:%M')
+    }
+    emit('comment-update-broadcast', comment_payload, broadcast=True)
+
+# ==============================================================================
+# BOOT EXECUTION LAYER MAPPING OVERRIDES
+# ==============================================================================
+
+if __name__ == '__main__':
+    with app.app_context():
+        # Auto-compile table structures inside your MySQL database schema instance
+        db.create_all()
+    port = int(os.environ.get('PORT', 5000))
+    # CRITICAL: Replace app.run with socketio.run to enable WebSocket event loops
+    socketio.run(app, host='0.0.0.0', port=port)
