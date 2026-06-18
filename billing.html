@@ -296,6 +296,28 @@
     </main>
 
     <script>
+        function toggleMobileSidebar() {
+    // Target your sidebar element
+    const sidebar = document.getElementById('sidebar');
+    
+    if (sidebar) {
+        // Toggle the class we created in shared.css
+        sidebar.classList.toggle('mobile-open');
+    }
+}
+
+// Optional: Close the sidebar automatically if a user clicks outside of it on mobile
+document.addEventListener('click', function(event) {
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.querySelector('.jbs-mobile-menu-toggle');
+    
+    // Check if the click happened outside both the sidebar and the hamburger button
+    if (sidebar && sidebar.classList.contains('mobile-open')) {
+        if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target)) {
+            sidebar.classList.remove('mobile-open');
+        }
+    }
+});
         let catalogProductsList = [];
 
         document.addEventListener('DOMContentLoaded', () => {

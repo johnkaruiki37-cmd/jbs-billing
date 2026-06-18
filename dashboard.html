@@ -13,6 +13,12 @@
     </style>
 </head>
 <body>
+    <button class="jbs-mobile-menu-toggle" onclick="toggleMobileSidebar()" style="background: none; border: none; color: var(--text-main); font-size: 1.25rem; margin-right: 1rem; cursor: pointer;">
+    <i class="fa-solid fa-bars"></i>
+</button>
+<button onclick="toggleMobileSidebar()" class="jbs-mobile-close-btn" style="background: none; border: none; color: var(--text-muted); font-size: 1.1rem; display: none; cursor: pointer;">
+    <i class="fa-solid fa-xmark"></i>
+</button>
     <div class="jbs-canvas-backdrop"><div class="jbs-wave-layer"></div></div>
     <div class="jbs-app-wrapper">
         <aside class="jbs-fixed-sidebar glass-panel" id="sidebar">
@@ -54,6 +60,28 @@
     </div>
     <script src="shared-layout.js"></script>
     <script>
+        function toggleMobileSidebar() {
+    // Target your sidebar element
+    const sidebar = document.getElementById('sidebar');
+    
+    if (sidebar) {
+        // Toggle the class we created in shared.css
+        sidebar.classList.toggle('mobile-open');
+    }
+}
+
+// Optional: Close the sidebar automatically if a user clicks outside of it on mobile
+document.addEventListener('click', function(event) {
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.querySelector('.jbs-mobile-menu-toggle');
+    
+    // Check if the click happened outside both the sidebar and the hamburger button
+    if (sidebar && sidebar.classList.contains('mobile-open')) {
+        if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target)) {
+            sidebar.classList.remove('mobile-open');
+        }
+    }
+});
         new Chart(document.getElementById("liveChart").getContext('2d'), {
             type: 'line',
             data: {
