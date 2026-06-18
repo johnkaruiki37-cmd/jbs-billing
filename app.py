@@ -692,3 +692,53 @@ def handle_register_action():
 @app.route('/index.html')
 def dashboard_home():
     return send_from_directory('.', 'index.html')
+    from flask import Flask, request, render_template, redirect, send_from_directory
+
+# Tell Flask that BOTH static files and template files live directly in the root folder '.'
+app = Flask(__name__, static_folder='.', static_url_path='', template_folder='.')
+
+USER_REGISTRY = {}
+
+# 1. Base Security Gate (Now safely searches the root folder for login.html)
+@app.route('/')
+def home_gate():
+    return render_template('login.html', error=None)
+
+# 2. Native Login Processing Engine
+@app.route('/login-action', methods=['POST'])
+def handle_login_action():
+    username = request.form.get('username').strip().lower()
+    password = request.form.get('password').strip()
+
+    # Admin Bypass (Matches lowercase 'admin' perfectly)
+    if username == 'admin' and password == 'admin':
+        return redirect('/index.html')
+
+    # Regular User Check
+    elif username in USER_REGISTRY and USER_REGISTRY[username] == password:
+        return redirect('/index.html')
+
+    else:
+        # Re-renders login.html from the root folder with the error text injection
+        return render_template('login.html', error="Invalid Secure Key Identification Details.")
+
+# 3. Native Registration Processing Engine
+@app.route('/register-action', methods=['POST'])
+def handle_register_action():
+    new_username = request.form.get('new_username').strip().lower()
+    new_password = request.form.get('new_password').strip()
+
+    if new_username == 'admin':
+        return render_template('login.html', error="Registration Blocked: Identity Reserved.")
+
+    if new_username in USER_REGISTRY:
+        return render_template('login.html', error="Profile Conflict: Identity already active.")
+
+    USER_REGISTRY[new_username] = new_password
+    return render_template('login.html', error="Registration Successful! Please login below.")
+
+# 4. Standard Dashboard Page Routing Tracker
+@app.route('/index.html')
+@app.route('/index')
+def dashboard_home():
+    return send_from_directory('.', 'index.html')
