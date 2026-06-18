@@ -631,18 +631,64 @@ def serve_login():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-    from flask import Flask, request, jsonify, send_from_directory
-
-# (Your existing setup config logic goes here...)
-
-@app.route('/api/login', methods=['POST'])
-def handle_login_verification():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
     
-    # Simple verification logic placeholder 
-    if username == 'admin' and password == 'admin': # Change this to your secure check!
-        return jsonify({"success": True, "message": "Verification Successful"})
+from flask import Flask, request, render_template, redirect, url_for, send_from_directory
+
+app = Flask(__name__, static_folder='.', static_url_path='')
+
+# Simple in-memory profile directory for newly registered users
+# (In the future, this can map to your db.create_all() SQLite framework setup)
+USER_REGISTRY = {
+    # 'username': 'password'
+}
+
+# 1. Base Security Gate
+@app.route('/')
+def home_gate():
+    # Render login directly through flask context to handle message injection
+    return send_from_directory('.', 'login.html')
+
+# 2. Native Login Action Processing Engine
+@app.route('/login-action', methods=['POST'])
+def handle_login_action():
+    username = request.form.get('username').strip()
+    password = request.form.get('password').strip()
+
+    # CRITICAL: Hardcoded Admin Exemption Route
+    if username == 'admin' and password == 'admin':
+        return redirect('/index.html')
+
+    # Regular Registered User Profile Verification Match Link
+    elif username in USER_REGISTRY and USER_REGISTRY[username] == password:
+        # Prevent regular users from logging in as the root user string
+        if username == 'admin':
+            return render_template('login.html', error="System Conflict: Reserved Credentials.")
+        return redirect('/index.html')
+
     else:
-        return jsonify({"success": False, "message": "Invalid Secure Key Credentials"}), 401
+        # Re-render form with a clear text indicator injection overlay
+        return render_template('login.html', error="Invalid Secure Key Identification Details.")
+
+# 3. Native Registration Logic Processing Engine
+@app.route('/register-action', methods=['POST'])
+def handle_register_action():
+    new_username = request.form.get('new_username').strip().lower()
+    new_password = request.form.get('new_password').strip()
+
+    # Guardrail: Prevent registering user accounts targeting admin identity fields
+    if new_username == 'admin':
+        return render_template('login.html', error="Registration Blocked: Identity Reserved.")
+
+    if new_username in USER_REGISTRY:
+        return render_template('login.html', error="Profile Conflict: Identity already active.")
+
+    # Commit entry save to backend structure dictionary list record
+    USER_REGISTRY[new_username] = new_password
+    
+    # Return to landing gate with successful profile verification indicator
+    return render_template('login.html', error="Registration Successful! Please login below.")
+
+# Standard Dashboard Layout Page Direct Routing Hooks...
+@app.route('/index.html')
+def dashboard_home():
+    return send_from_directory('.', 'index.html')

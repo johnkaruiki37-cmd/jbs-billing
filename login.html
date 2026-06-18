@@ -3,492 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JBS - Intelligent Gateway Portal</title>
+    <title>JBS - Security Access Gate</title>
     <link rel="stylesheet" href="shared.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem 1rem;
-        }
-        .auth-container {
-            width: 100%;
-            max-width: 480px;
-            position: relative;
-            z-index: 10;
-        }
-        .auth-card {
-            position: relative;
-            overflow: hidden;
-        }
-        .auth-tabs {
-            display: flex;
-            border-bottom: 1px solid var(--glass-border);
-            margin-bottom: 1.5rem;
-        }
-        .auth-tab {
-            flex: 1;
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            padding: 1rem;
-            font-family: var(--font-primary);
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all var(--transition-fast);
-            text-align: center;
-        }
-        .auth-tab.active {
-            color: var(--accent-blue);
-            border-bottom: 2px solid var(--accent-blue);
-        }
-        .form-panel {
-            display: none;
-        }
-        .form-panel.active {
-            display: block;
-            animation: panelFade 0.3s ease-in-out;
-        }
-        @keyframes panelFade {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .form-footer-actions {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 1rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.85rem;
-        }
-        .remember-me-label {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--text-muted);
-            cursor: pointer;
-        }
-        .forgot-link {
-            color: var(--accent-blue);
-            text-decoration: none;
-        }
-        .forgot-link:hover {
-            text-decoration: underline;
-        }
-        /* --- Camera Preview Layout --- */
-        .camera-viewport {
-            width: 100%;
-            height: 240px;
-            background: #000;
-            border-radius: var(--radius-sm);
-            margin-bottom: 1.25rem;
-            overflow: hidden;
-            position: relative;
-            border: 2px dashed var(--glass-border);
-        }
-        #videoFeed {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1); /* Mirror view alignment */
-        }
-        .camera-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            border: 2rem solid rgba(11, 19, 41, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-        }
-        .scan-target-box {
-            width: 160px;
-            height: 160px;
-            border: 2px solid var(--accent-blue);
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
-            border-radius: 50%;
-            position: relative;
-        }
-        .scan-line {
-            position: absolute;
-            width: 100%;
-            height: 2px;
-            background: var(--accent-blue);
-            top: 0;
-            box-shadow: 0 0 8px var(--accent-blue);
-            animation: radarScan 2s linear infinite;
-        }
-        @keyframes radarScan {
-            0% { top: 0%; }
-            50% { top: 100%; }
-            100% { top: 0%; }
-        }
-        /* --- Mascot Interactive Success Layer --- */
-        .mascot-modal {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(11, 19, 41, 0.9);
-            backdrop-filter: blur(12px);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.4s ease;
-        }
-        .mascot-modal.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .dog-container {
-            position: relative;
-            width: 150px;
-            height: 150px;
-            animation: dogJump 0.6s infinite alternate ease-in-out;
-        }
-        @keyframes dogJump {
-            from { transform: translateY(0); }
-            to { transform: translateY(-25px); }
-        }
-        .speech-bubble {
-            background: #ffffff;
-            color: #0f172a;
-            padding: 1rem 1.5rem;
-            border-radius: var(--radius-lg);
-            font-weight: 700;
-            font-size: 1.1rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 10px 25px rgba(255,255,255,0.1);
-            position: relative;
-            animation: bubblePulse 1.2s infinite ease-in-out;
-        }
-        .speech-bubble::after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            border-width: 10px 10px 0;
-            border-style: solid;
-            border-color: #ffffff transparent;
-            display: block;
-            width: 0;
-        }
-        /* Lightweight stylized graphic components for 2GB system optimization */
-        .dog-face {
-            width: 100px;
-            height: 100px;
-            background: #e2e8f0;
-            border-radius: 50%;
-            position: absolute;
-            bottom: 0; left: 25px;
-            box-shadow: inset -10px -10px 0 #cbd5e1;
-        }
-        .dog-ear-l, .dog-ear-r {
-            width: 30px; height: 60px;
-            background: #94a3b8;
-            position: absolute;
-            top: 10px; border-radius: 15px;
-        }
-        .dog-ear-l { left: 15px; transform: rotate(-15deg); }
-        .dog-ear-r { right: 15px; transform: rotate(15deg); }
-        .dog-tail {
-            width: 15px; height: 45px;
-            background: #cbd5e1;
-            position: absolute;
-            bottom: 20px; right: 10px;
-            border-radius: 10px;
-            transform-origin: bottom center;
-            animation: tailWag 0.15s infinite alternate linear;
-        }
-        @keyframes tailWag {
-            from { transform: rotate(-20deg); }
-            to { transform: rotate(20deg); }
-        }
+        .auth-container { max-width: 400px; margin: 10% auto; padding: 2rem; background: #1a1f2c; border-radius: 8px; color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .form-group { margin-bottom: 1.2rem; }
+        .form-group label { display: block; margin-bottom: 0.4rem; font-size: 0.85rem; color: #94a3b8; }
+        .form-group input { width: 100%; padding: 0.6rem; border-radius: 4px; border: 1px solid #334155; background: #0f172a; color: #fff; }
+        .auth-btn { width: 100%; padding: 0.7rem; background: #10b981; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; }
+        .error-msg { color: #ef4444; font-size: 0.85rem; margin-bottom: 1rem; text-align: center; }
+        .toggle-link { text-align: center; margin-top: 1rem; font-size: 0.85rem; color: #38bdf8; cursor: pointer; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="jbs-toast-stack" id="toastStack"></div>
-
-    <div class="mascot-modal" id="mascotLayer">
-        <div class="speech-bubble">Welcome back to John Billing System!</div>
-        <div class="dog-container">
-            <div class="dog-tail"></div>
-            <div class="dog-ear-l"></div>
-            <div class="dog-ear-r"></div>
-            <div class="dog-face"></div>
-        </div>
-    </div>
-
     <div class="auth-container">
-        <div class="glass-panel auth-card">
-            
-            <div class="auth-tabs">
-                <button class="auth-tab active" onclick="switchTab('user-login')"><i class="fa-solid fa-user-lock"></i> User Login</button>
-                <button class="auth-tab" onclick="switchTab('admin-biometric')"><i class="fa-solid fa-face-id"></i> Admin Biometric</button>
-                <button class="auth-tab" onclick="switchTab('registration')"><i class="fa-solid fa-user-plus"></i> Register</button>
-            </div>
+        {% if error %}
+            <div class="error-msg">⚠️ {{ error }}</div>
+        {% endif %}
 
-            <div id="panel-user-login" class="form-panel active">
-                <form id="userLoginForm" onsubmit="handleUserAuthentication(event)">
-                    <div class="jbs-form-group">
-                        <label>Identity Identifier</label>
-                        <input type="text" id="loginIdentity" class="jbs-input-control" placeholder="Username or Account Email" required autocomplete="username">
-                    </div>
-                    <div class="jbs-form-group">
-                        <label>Secure Key Password</label>
-                        <input type="password" id="loginPassword" class="jbs-input-control" placeholder="••••••••" required autocomplete="current-password">
-                    </div>
-                    <div class="form-footer-actions">
-                        <label class="remember-me-label">
-                            <input type="checkbox" id="rememberMe"> Remember Me Node
-                        </label>
-                        <a href="#" class="forgot-link" onclick="triggerPasswordReset()">Recovery Access?</a>
-                    </div>
-                    <button type="submit" class="jbs-btn-primary" style="width: 100%;">
-                        <span>Execute Authorization Verification</span> <i class="fa-solid fa-right-to-bracket"></i>
-                    </button>
-                </form>
-            </div>
-
-            <div id="panel-admin-biometric" class="form-panel">
-                <div class="camera-viewport">
-                    <video id="videoFeed" autoplay playsinline></video>
-                    <div class="camera-overlay">
-                        <div class="scan-target-box">
-                            <div class="scan-line"></div>
-                        </div>
-                    </div>
+        <div id="login-section">
+            <h2 style="margin-bottom: 1.5rem;">User Authorization</h2>
+            <form action="/login-action" method="POST">
+                <div class="form-group">
+                    <label>Identity Identifier</label>
+                    <input type="text" name="username" required placeholder="admin or user_id">
                 </div>
-                <button type="button" class="jbs-btn-primary" id="biometricActionBtn" onclick="executeBiometricScan()" style="width: 100%;">
-                    <i class="fa-solid fa-camera"></i> <span>Initialize Biometric Capture Matrix</span>
-                </button>
-            </div>
+                <div class="form-group">
+                    <label>Secure Key Password</label>
+                    <input type="password" name="password" required placeholder="••••">
+                </div>
+                <button type="submit" class="auth-btn">Execute Verification</button>
+            </form>
+            <div class="toggle-link" onclick="toggleAuthViews()">Need an account? Register Section</div>
+        </div>
 
-            <div id="panel-registration" class="form-panel">
-                <form id="registrationForm" onsubmit="handleRegistrationPipeline(event)" enctype="multipart/form-data">
-                    <div class="jbs-form-group">
-                        <label>Full Name</label>
-                        <input type="text" id="regFullName" class="jbs-input-control" placeholder="John Kabuthi" required>
-                    </div>
-                    <div class="jbs-form-group">
-                        <label>System Username</label>
-                        <input type="text" id="regUsername" class="jbs-input-control" placeholder="dr_kabuthi" required>
-                    </div>
-                    <div class="jbs-form-group">
-                        <label>Registered Business Name</label>
-                        <input type="text" id="regBusinessName" class="jbs-input-control" placeholder="Central Agrovet Supplies" required>
-                    </div>
-                    <div class="jbs-form-group">
-                        <label>Email Address</label>
-                        <input type="email" id="regEmail" class="jbs-input-control" placeholder="corporate@jbs.co.ke" required>
-                    </div>
-                    <div class="jbs-form-group">
-                        <label>M-Pesa Connected Phone Number</label>
-                        <input type="tel" id="regPhone" class="jbs-input-control" placeholder="0798770325" required>
-                    </div>
-                    <div class="jbs-form-group">
-                        <label>Password Structure</label>
-                        <input type="password" id="regPassword" class="jbs-input-control" placeholder="••••••••" required>
-                    </div>
-                    <div class="jbs-form-group">
-                        <label>Confirm Password String Match</label>
-                        <input type="password" id="regConfirmPassword" class="jbs-input-control" placeholder="••••••••" required>
-                    </div>
-                    <div class="jbs-form-group">
-                        <label>Profile Image Metadata Anchor File</label>
-                        <input type="file" id="regAvatar" class="jbs-input-control" accept="image/*" required>
-                    </div>
-                    <button type="submit" class="jbs-btn-primary" style="width: 100%; margin-top: 1rem;">
-                        <span>Finalize Account Provisioning</span> <i class="fa-solid fa-user-check"></i>
-                    </button>
-                </form>
-            </div>
-
+        <div id="registration-section" class="hidden">
+            <h2 style="margin-bottom: 1.5rem;">System Registration</h2>
+            <form action="/register-action" method="POST">
+                <div class="form-group">
+                    <label>Choose Username</label>
+                    <input type="text" name="new_username" required placeholder="e.g., john_k">
+                </div>
+                <div class="form-group">
+                    <label>Create Secure Key</label>
+                    <input type="password" name="new_password" required placeholder="••••">
+                </div>
+                <button type="submit" class="auth-btn" style="background: #3b82f6;">Register New Profile</button>
+            </form>
+            <div class="toggle-link" onclick="toggleAuthViews()">Already registered? Back to Login</div>
         </div>
     </div>
 
     <script>
-        let cameraStreamInstance = null;
-
-        function triggerNotification(message, level = 'info') {
-            const stack = document.getElementById('toastStack');
-            const toast = document.createElement('div');
-            toast.className = `jbs-toast`;
-            toast.style.borderLeft = `4px solid var(--status-${level})`;
-            toast.innerHTML = `<i class="fa-solid ${level === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i> ${message}`;
-            stack.appendChild(toast);
-            setTimeout(() => { toast.remove(); }, 4000);
+        function toggleAuthViews() {
+            document.getElementById('login-section').classList.toggle('hidden');
+            document.getElementById('registration-section').classList.toggle('hidden');
         }
-
-        function switchTab(targetPanelId) {
-            document.querySelectorAll('.auth-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.form-panel').forEach(panel => panel.classList.remove('active'));
-            
-            const selectedPanel = document.getElementById(`panel-${targetPanelId}`);
-            selectedPanel.classList.add('active');
-            event.currentTarget.classList.add('active');
-
-            if (targetPanelId === 'admin-biometric') {
-                initializeCameraPeripheral();
-            } else {
-                killCameraPeripheral();
-            }
-        }
-
-        async function initializeCameraPeripheral() {
-            const video = document.getElementById('videoFeed');
-            try {
-                cameraStreamInstance = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
-                video.srcObject = cameraStreamInstance;
-            } catch (err) {
-                triggerNotification("Failed to bind visual capture peripheral stream: Hardware locked or missing.", "danger");
-            }
-        }
-
-        function killCameraPeripheral() {
-            if (cameraStreamInstance) {
-                cameraStreamInstance.getTracks().forEach(track => track.stop());
-                cameraStreamInstance = null;
-            }
-        }
-
-        async function handleUserAuthentication(e) {
-            e.preventDefault();
-            const identity = document.getElementById('loginIdentity').value;
-            const password = document.getElementById('loginPassword').value;
-            const rememberMe = document.getElementById('rememberMe').checked;
-
-            try {
-                const res = await fetch('/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ identity, password, remember_me: rememberMe })
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    triggerNotification("Authorization token approved. Executing welcome animations.", "success");
-                    document.getElementById('mascotLayer').classList.add('active');
-                    setTimeout(() => { window.location.href = '/dashboard.html'; }, 3000);
-                } else {
-                    triggerNotification(data.message, "danger");
-                }
-            } catch (err) {
-                triggerNotification("Network transport infrastructure layer execution failure.", "danger");
-            }
-        }
-
-        async function executeBiometricScan() {
-            const video = document.getElementById('videoFeed');
-            const canvas = document.createElement('canvas');
-            canvas.width = 640;
-            canvas.height = 480;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            const base64FramePayload = canvas.toDataURL('image/jpeg');
-            const button = document.getElementById('biometricActionBtn');
-            button.disabled = true;
-            button.querySelector('span').innerText = "Comparing Core Biometric Histograms...";
-
-            try {
-                const res = await fetch('/face-login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: base64FramePayload })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    triggerNotification("Biometric parameters identified. Welcome Administrator.", "success");
-                    killCameraPeripheral();
-                    document.getElementById('mascotLayer').classList.add('active');
-                    setTimeout(() => { window.location.href = '/dashboard.html'; }, 3000);
-                } else {
-                    triggerNotification(data.message, "danger");
-                    button.disabled = false;
-                    button.querySelector('span').innerText = "Retry Biometric Capture Matrix";
-                }
-            } catch (err) {
-                triggerNotification("Biometric API communication transport layer fault.", "danger");
-                button.disabled = false;
-            }
-        }
-
-        async function handleRegistrationPipeline(e) {
-            e.preventDefault();
-            const pass = document.getElementById('regPassword').value;
-            const confirm = document.getElementById('regConfirmPassword').value;
-
-            if (pass !== confirm) {
-                triggerNotification("Data verification failure: Password confirmation block strings mismatch.", "danger");
-                return;
-            }
-
-            const payloadData = new FormData();
-            payloadData.append('full_name', document.getElementById('regFullName').value);
-            payloadData.append('username', document.getElementById('regUsername').value);
-            payloadData.append('business_name', document.getElementById('regBusinessName').value);
-            payloadData.append('email', document.getElementById('regEmail').value);
-            payloadData.append('phone', document.getElementById('regPhone').value);
-            payloadData.append('password', pass);
-            payloadData.append('avatar', document.getElementById('regAvatar').files[0]);
-
-            try {
-                const res = await fetch('/register', { method: 'POST', body: payloadData });
-                const data = await res.json();
-
-                if (data.success) {
-                    triggerNotification("System registration finalized successfully. Safe redirecting to validation page.", "success");
-                    setTimeout(() => { switchTab('user-login'); }, 2000);
-                } else {
-                    triggerNotification(data.message, "danger");
-                }
-            } catch (err) {
-                triggerNotification("Failed to transmit data mapping payload block array to remote server host storage system.", "danger");
-            }
-        }
-
-        async function triggerPasswordReset() {
-            const identifier = prompt("Enter registration email address node location for target record parsing identifier recovery:");
-            if (!identifier) return;
-
-            try {
-                const res = await fetch('/forgot-password', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: identifier })
-                });
-                const data = await res.json();
-                triggerNotification(data.message, data.success ? "success" : "danger");
-            } catch (err) {
-                triggerNotification("Security recovery transactional protocol failure exception encountered.", "danger");
-            }
-        }
-        // NEW UNIFIED FLASK ENGINE TARGET
-fetch('/api/login', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ username: username, password: password })
-})
-.then(response => response.json())
-.then(data => {
-    if (data.success) {
-        // Redirect smoothly to your home dashboard landing page matrix
-        window.location.href = '/index.html'; 
-    } else {
-        alert("Authorization Denied: " + data.message);
-    }
-});
     </script>
 </body>
 </html>
