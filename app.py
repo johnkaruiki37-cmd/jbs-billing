@@ -623,7 +623,7 @@ app = Flask(__name__, static_folder='.', static_url_path='')
 
 # THIS IS THE CRITICAL MISSING LINK FOR RENDER
 @app.route('/')
-def serve_index():
+def serve_login():
     return send_from_directory('.', 'index.html')
 
 # Keep your other API routes (like /api/billing, etc.) below this...
