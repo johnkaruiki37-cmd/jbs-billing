@@ -667,3 +667,15 @@ def serve_index():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+    # --- PRIMARY ROUTE SECURITY OVERLAYS ---
+
+# FORCE THE LOGIN VIEW AT BASE SYSTEM URL ROOT
+@app.route('/')
+def serve_login_default():
+    return send_from_directory('.', 'login.html')
+
+# Keep index.html separate as your main home dashboard landing after successful auth
+@app.route('/index')
+@app.route('/index.html')
+def serve_dashboard_home():
+    return send_from_directory('.', 'index.html')

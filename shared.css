@@ -638,3 +638,29 @@ body {
     background: rgba(255, 255, 255, 0.08);
     color: #ffffff; /* Turns text clear white on hover */
 }
+/* --- MOBILE LAYOUT RESPONSIVENESS OVERRIDES --- */
+@media (max-width: 768px) {
+    /* Hide the sidebar completely off the left edge of the phone by default */
+    .jbs-fixed-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 9999; /* Floats over elements cleanly only when called */
+        width: 280px;
+    }
+
+    /* When this class is toggled on via JS, slide it smoothly into view */
+    .jbs-fixed-sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    /* Expand the main view to take up 100% of the screen width since sidebar is hidden */
+    .jbs-main-viewport {
+        margin-left: 0 !important;
+        padding: 1rem !important;
+        width: 100% !important;
+    }
+}
