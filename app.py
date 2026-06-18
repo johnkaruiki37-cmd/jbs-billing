@@ -616,3 +616,18 @@ if __name__ == '__main__':
         db.create_all()
         calibrate_admin_biometrics()
     app.run(host='0.0.0.0', port=5000, debug=True)
+    import os
+from flask import Flask, send_from_directory
+
+app = Flask(__name__, static_folder='.', static_url_path='')
+
+# THIS IS THE CRITICAL MISSING LINK FOR RENDER
+@app.route('/')
+def serve_index():
+    return send_from_directory('.', 'index.html')
+
+# Keep your other API routes (like /api/billing, etc.) below this...
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
