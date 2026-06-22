@@ -681,3 +681,237 @@ def handle_register_action():
 @app.route('/index')
 def dashboard_home():
     return send_from_directory('.', 'index.html')
+    import os
+from datetime import datetime
+from flask import Flask, request, jsonify, render_template, redirect, session, send_from_directory
+from flask_sqlalchemy import SQLAlchemy
+from flask_socketio import SocketIO, emit
+
+# Tell Flask that BOTH static files and template files live directly in the flat root folder '.'
+app = Flask(__name__, static_folder='.', static_url_path='', template_folder='.')
+app.config['SECRET_KEY'] = 'jbs_secure_matrix_secret_key_2026'
+
+# --- MYSQL DATABASE CONFIGURATION ---
+# Replace with your actual database credentials (e.g., Kinsta, Aiven, or Local MySQL)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:your_password@localhost/jbs_database'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# ==============================================================================
+# DATABASE SCHEMAS (MySQL Tables)
+# ==============================================================================
+
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    full_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    profile_image = db.Column(db.String(255), default='/default-avatar.png')
+    business_name = db.Column(db.String(100), default='Independent Vendor')
+    business_category = db.Column(db.String(50), default='General')
+    badge = db.Column(db.String(30), default='Member') # Admin, Moderator, Member
+    posts = db.relationship('Post', backref='author', lazy=True)
+
+class Post(db.Model):
+    __tablename__ = 'posts'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    image_url = db.Column(db.String(255), nullable=True)
+    category = db.Column(db.String(50), default='General Discussions')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    likes = db.relationship('Like', backref='post', lazy=True)
+
+class Like(db.Model):
+    __tablename__ = 'likes'
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+# An in-memory backup system to handle credentials if the DB is processing connections
+USER_REGISTRY = {}
+
+# ==============================================================================
+# STATIC & TEMPLATE ROUTING GATEWAYS
+# ==============================================================================
+
+# 1. Main Application Security Gate
+@app.route('/')
+def home_gate():
+    return render_template('login.html', error=None)
+
+# 2. Serve Forum View directly from flat directory
+@app.route('/forum.html')
+@app.route('/forum')
+def serve_forum_view():
+    return send_from_directory('.', 'forum.html')
+
+# 3. Serve standard independent dashboard files smoothly
+@app.route('/index.html')
+@app.route('/billing.html')
+@app.route('/inventory.html')
+@app.route('/scanner.html')
+def serve_flat_dashboards():
+    # Automatically extracts file string mapping based on trailing URL endpoint path
+    requested_file = request.path.lstrip('/')
+    return send_from_directory('.', requested_file)
+
+# ==============================================================================
+# AUTHENTICATION PROCESSING ENGINE
+# ==============================================================================
+
+@app.route('/login-action', methods=['POST'])
+def handle_login_action():
+    username = request.form.get('username').strip().lower()
+    password = request.form.get('password').strip()
+
+    # CRITICAL: Hardcoded Master Admin Bypass Route
+    if username == 'admin' and password == 'admin':
+        session['user_id'] = 0
+        session['username'] = 'admin'
+        return redirect('/index.html')
+
+    # Regular MySQL Registered User Check
+    user = User.query.filter_by(username=username).first()
+    if user and password == "secure_password_match_placeholder": # Match with your password validation framework
+        session['user_id'] = user.id
+        session['username'] = user.username
+        return redirect('/index.html')
+    
+    # In-memory dictionary validation fallback
+    elif username in USER_REGISTRY and USER_REGISTRY[username] == password:
+        session['user_id'] = 999
+        session['username'] = username
+        return redirect('/index.html')
+
+    else:
+        return render_template('login.html', error="Invalid Secure Key Identification Details.")
+
+@app.route('/register-action', methods=['POST'])
+def handle_register_action():
+    new_username = request.form.get('new_username').strip().lower()
+    new_password = request.form.get('new_password').strip()
+
+    if new_username == 'admin':
+        return render_template('login.html', error="Registration Blocked: Identity Reserved.")
+
+    if new_username in USER_REGISTRY:
+        return render_template('login.html', error="Profile Conflict: Identity already active.")
+
+    USER_REGISTRY[new_username] = new_password
+    return render_template('login.html', error="Registration Successful! Please login below.")
+
+# ==============================================================================
+# COMMUNITY FORUM REST ENDPOINTS & IMAGE STREAMING
+# ==============================================================================
+
+@app.route('/get-posts', methods=['GET'])
+def get_posts():
+    posts = Post.query.order_by(Post.created_at.desc()).all()
+    posts_data = []
+    for p in posts:
+        posts_data.append({
+            "id": p.id,
+            "content": p.content,
+            "image_url": p.image_url,
+            "category": p.category,
+            "created_at": p.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            "likes_count": len(p.likes),
+            "comments_count": 0,
+            "user": {
+                "username": p.author.username,
+                "full_name": p.author.full_name,
+                "profile_image": p.author.profile_image,
+                "business_name": p.author.business_name,
+                "badge": p.author.badge
+            }
+        })
+    return jsonify({"posts": posts_data})
+
+@app.route('/upload-image', methods=['POST'])
+def upload_image():
+    if 'file' not in request.files:
+        return jsonify({"error": "No media found"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+        
+    # Saves files straight into your flat directory structure safely
+    filename = f"upload_{int(datetime.utcnow().timestamp())}_{file.filename}"
+    file.save(os.path.join('.', filename))
+    return jsonify({"image_url": f"/{filename}"})
+
+# ==============================================================================
+# REAL-TIME SOCKET.IO FORUM PIPELINES
+# ==============================================================================
+
+@socketio.on('create-post')
+def handle_realtime_post(data):
+    uid = session.get('user_id', 0)
+    user = User.query.get(uid) if uid != 0 else None
+    
+    # Extract structural profile metadata using safe scope extraction blocks
+    if user:
+        author_username = user.username
+        author_fullname = user.full_name
+        author_img = user.profile_image
+        author_biz = user.business_name
+        author_badge = user.badge
+    else:
+        author_username = "admin"
+        author_fullname = "System Administrator"
+        author_img = "/default-avatar.png"
+        author_biz = "JBS Core HQ"
+        author_badge = "Admin"
+
+    # Broadcast layout object back down stream channels instantly
+    feed_payload = {
+        "id": int(datetime.utcnow().timestamp()),
+        "content": data.get('content'),
+        "image_url": data.get('image_url'),
+        "category": data.get('category', 'General Discussions'),
+        "created_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+        "likes_count": 0,
+        "comments_count": 0,
+        "user": {
+            "username": author_username,
+            "full_name": author_fullname,
+            "profile_image": author_img,
+            "business_name": author_biz,
+            "badge": author_badge
+        }
+    }
+
+    emit('new-post-broadcast', feed_payload, broadcast=True)
+    
+    emit('global-system-alert', {
+        "title": "New Forum Post",
+        "message": f"{author_fullname} posted in {feed_payload['category']}"
+    }, broadcast=True, include_self=False)
+
+@socketio.on('like-post')
+def handle_realtime_like(data):
+    pid = data.get('post_id')
+    # Simple simulated like-toggle metrics engine incrementor
+    emit('like-update-broadcast', {"post_id": pid, "total_likes": 1}, broadcast=True)
+
+# ==============================================================================
+# SYSTEM RUN INITIALIZATION
+# ==============================================================================
+if __name__ == '__main__':
+    with app.app_context():
+        try:
+            db.create_all()
+        except Exception as e:
+            print(f"Database Table Initialization Deferred: {e}")
+            
+    port = int(os.environ.get('PORT', 5000))
+    # CRITICAL: Must use socketio.run instead of app.run to prevent thread locks!
+    socketio.run(app, host='0.0.0.0', port=port)
+    try:
+    db.create_all()
+except Exception as e:
+    print(f"Database Table Initialization Deferred: {e}")
