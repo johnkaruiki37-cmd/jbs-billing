@@ -911,7 +911,4 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     # CRITICAL: Must use socketio.run instead of app.run to prevent thread locks!
     socketio.run(app, host='0.0.0.0', port=port)
-    try:
-    db.create_all()
-except Exception as e:
-    print(f"Database Table Initialization Deferred: {e}")
+    
