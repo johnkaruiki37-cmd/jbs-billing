@@ -855,4 +855,33 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     # CRITICAL: Must use socketio.run instead of app.run to prevent thread locks!
     socketio.run(app, host='0.0.0.0', port=port)
+    @app.route('/login-action', methods=['POST'])
+def handle_login_action():
+    username = request.form.get('username', '').strip().lower()
+    password = request.form.get('password', '').strip()
+
+    # 1. Master System Admin Bypass Route (Works everywhere, no DB needed)
+    if username == 'admin' and password == 'admin':
+        session['user_id'] = 0
+        session['username'] = 'admin'
+        return redirect('/index.html')
+
+    # 2. Database User Validation Check (Wrapped safely to prevent 500 errors)
+    try:
+        user = User.query.filter_by(username=username).first()
+        if user and user.password == password: 
+            session['user_id'] = user.id
+            session['username'] = user.username
+            return redirect('/index.html')
+    except Exception as db_error:
+        # If running on Render where localhost MySQL doesn't exist, log it and keep going!
+        print(f"Database unavailable on this server instance. Falling back to memory: {db_error}")
+
+    # 3. Flat Memory Dictionary Registry Fallback Check
+    if username in USER_REGISTRY and USER_REGISTRY[username] == password:
+        session['user_id'] = 999  
+        session['username'] = username
+        return redirect('/index.html')
+    
+    return render_template('login.html', error="Invalid Secure Key Identification Details.")
     
