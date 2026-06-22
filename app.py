@@ -215,42 +215,4 @@ def save_document_transaction():
             "success": True, 
             "message": "Saved successfully in Offline Sandbox Mode."
         })
-        @app.route('/api/get-inventory', methods=['GET'])
-def get_inventory_records():
-    try:
-        # Fetch the complete sequential transaction ledger sequence from database
-        all_logs = InventoryRecord.query.order_by(InventoryRecord.logged_at.desc()).all()
         
-        logs_list = []
-        summary_map = {}
-
-        for log in all_logs:
-            # 1. Compile chronological transactional history objects
-            logs_list.append({
-                "id": log.id,
-                "item_name": log.item_name,
-                "quantity_change": log.quantity_change,
-                "document_reference": log.document_reference,
-                "logged_at": log.logged_at.strftime('%Y-%m-%d %H:%M')
-            })
-
-            # 2. Compute live stock balances on-the-fly dynamically per product label name
-            if log.item_name not in summary_map:
-                summary_map[log.item_name] = {"balance": 0, "last_ref": log.document_reference}
-            
-            summary_map[log.item_name]["balance"] += log.quantity_change
-
-        return jsonify({
-            "success": True,
-            "logs": logs_list,
-            "summary": summary_map
-        })
-
-    except Exception as err:
-        print(f"[LEDS SYNC CRASH] Fallback to mock interface processing blocks: {err}")
-        # Crash safety boundary fallback return array if running database-free on Render
-        return jsonify({
-            "success": True,
-            "logs": [],
-            "summary": {}
-        })
