@@ -3,84 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JBS - Intelligent Billing Desk</title>
+    <title>JBS - Billing Hub & Document Engine</title>
     <link rel="stylesheet" href="shared.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-   
-   <style>
+    <style>
         :root {
-            --glass-bg: rgba(30, 41, 59, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.08);
+            --bg-main: #0f172a;
+            --bg-card: #1a1f2c;
+            --border-color: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
             --accent-green: #10b981;
-            --accent-gold: #d4af37;
-            --accent-blue: #38bdf8;
+            --accent-blue: #3b82f6;
         }
 
-        .billing-grid {
-            display: grid;
-            grid-template-columns: 1.8fr 1.2fr;
-            gap: 1.5rem;
-            margin-top: 1.5rem;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-primary); padding: 30px; }
 
-        @media (max-width: 1024px) {
-            .billing-grid { grid-template-columns: 1fr; }
-        }
+        .billing-container { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+        
+        /* Control Panel Header Box */
+        .control-panel { background: var(--bg-card); border: 1px solid var(--border-color); padding: 20px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; justify-content: space-between; }
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        .input-group label { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; }
+        .control-panel input, .control-panel select { background: var(--bg-main); border: 1px solid var(--border-color); padding: 8px 12px; color: var(--text-primary); border-radius: 4px; font-size: 0.9rem; }
+        
+        .btn-group { display: flex; gap: 10px; }
+        .btn { border: none; padding: 10px 18px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
+        .btn-green { background: var(--accent-green); color: white; }
+        .btn-blue { background: var(--accent-blue); color: white; }
+        .btn:hover { opacity: 0.9; }
 
-        .glass-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
-        }
+        /* Interactive Spreadsheet Billing Grid */
+        .table-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
+        th { background: #22293a; padding: 14px; color: var(--text-secondary); font-weight: 600; border-bottom: 1px solid var(--border-color); }
+        td { padding: 12px 14px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        
+        .table-input { width: 100%; background: transparent; border: none; color: var(--text-primary); font-size: 0.95rem; }
+        .table-input:focus { outline: none; background: rgba(255,255,255,0.05); border-radius: 2px; }
+        .remove-row-btn { background: transparent; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; }
 
-        .widget-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
+        /* Document Totals Display Panel */
+        .billing-footer-summary { display: flex; justify-content: flex-end; padding: 20px; background: #22293a; border-top: 1px solid var(--border-color); }
+        .summary-box { width: 280px; display: flex; flex-direction: column; gap: 10px; }
+        .summary-row { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--text-secondary); }
+        .summary-row.grand-total { font-size: 1.2rem; font-weight: bold; color: var(--text-primary); border-top: 1px solid var(--border-color); padding-top: 8px; margin-top: 5px; }
 
-        .widget-box {
-            background: rgba(15, 23, 42, 0.6);
-            border-left: 4px solid var(--accent-blue);
-            padding: 1.25rem;
-            border-radius: 6px;
-        }
-
-        .flex-group {
-            display: flex;
-            gap: 1rem;
-        }
-        .flex-group > * { flex: 1; }
-
-        /* Invoice Sheet Blueprint Layout styling */
-        .invoice-table th { background: rgba(15, 23, 42, 0.8) !important; color: #94a3b8; }
-        .remove-btn { background: rgba(239, 68, 68, 0.15); color: #f87171; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
-        .remove-btn:hover { background: #ef4444; color: white; }
-
-        /* Document Blueprint Printing Frame Rules */
+        /* ==============================================================================
+           PRINT ENGINE OVERRIDES FOR DYNAMIC PDF DOWNLOAD GENERATION
+           ============================================================================== */
         @media print {
-            body * { visibility: hidden; background: #fff !important; color: #000 !important; }
-            #printable-invoice-canvas, #printable-invoice-canvas * { visibility: visible; }
-            #printable-invoice-canvas { position: absolute; left: 0; top: 0; width: 100%; padding: 0; margin: 0; box-shadow: none; }
-            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; padding: 0 !important; }
+            .control-panel, .remove-row-btn, .btn, th:last-child, td:last-child { display: none !important; }
+            .billing-container { max-width: 100% !important; margin: 0 !important; gap: 0 !important; }
+            .table-card { border: none !important; background: transparent !important; }
+            th { background: #f1f5f9 !important; color: black !important; border-bottom: 2px solid #cbd5e1 !important; }
+            td { border-bottom: 1px solid #e2e8f0 !important; color: black !important; }
+            .billing-footer-summary { background: transparent !important; border-top: 2px solid #cbd5e1 !important; }
+            .summary-row.grand-total { color: black !important; border-top: 2px solid black !important; }
+            input, select { color: black !important; background: transparent !important; }
+            
+            /* Document Header Stamp Context Widget */
+            .print-header-stamp { display: block !important; margin-bottom: 30px; }
+            .print-document-type-title { font-size: 2rem; font-weight: bold; text-transform: uppercase; text-align: right; margin-bottom: 10px; color: #0f172a; }
         }
-
-        #printable-invoice-canvas {
-            background: #fff;
-            color: #0f172a;
-            border-radius: 8px;
-            padding: 2.5rem;
-            font-family: 'Courier New', Courier, monospace;
-        }
+        .print-header-stamp { display: none; }
     </style>
 </head>
-<body> 
-  <div class="jbs-canvas-backdrop"><div class="jbs-wave-layer"></div></div>
+<body>
+    <button class="jbs-mobile-menu-toggle" onclick="toggleMobileSidebar()" style="background: none; border: none; color: var(--text-main); font-size: 1.25rem; margin-right: 1rem; cursor: pointer;">
+    <i class="fa-solid fa-bars"></i>
+</button>
+<button onclick="toggleMobileSidebar()" class="jbs-mobile-close-btn" style="background: none; border: none; color: var(--text-muted); font-size: 1.1rem; display: none; cursor: pointer;">
+    <i class="fa-solid fa-xmark"></i>
+</button>
+    <div class="jbs-canvas-backdrop"><div class="jbs-wave-layer"></div></div>
     <div class="jbs-app-wrapper">
         <aside class="jbs-fixed-sidebar glass-panel" id="sidebar">
             <div class="jbs-sidebar-header-wrapper">
@@ -100,227 +98,221 @@
                 <a href="about.html" class="jbs-menu-nav-item"><i class="fa-solid fa-circle-info"></i><span class="jbs-menu-text-label">About System</span></a>
             </nav>
         </aside>
-    
-    <main class="jbs-main-container">
-        <div class="widget-row no-print">
-            <div class="widget-box">
-                <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase;">Total Shift Sales</div>
-                <div id="stat-total-sales" style="font-size: 1.5rem; font-weight: bold; color: var(--accent-green); margin-top: 4px;">Ksh 0.00</div>
+
+    <div class="billing-container">
+        
+        <header class="control-panel">
+            <div class="input-group">
+                <label>Customer Name</label>
+                <input type="text" id="customerName" value="Walk-in Client" oninput="syncPrintHeader()">
             </div>
-            <div class="widget-box" style="border-left-color: var(--accent-gold);">
-                <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase;">Invoices Compiled</div>
-                <div id="stat-invoice-count" style="font-size: 1.5rem; font-weight: bold; color: #fff; margin-top: 4px;">0</div>
-            </div>
-            <div class="widget-box" style="border-left-color: #ef4444;">
-                <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase;">Outstanding Credit Balances</div>
-                <div id="stat-credit-balance" style="font-size: 1.5rem; font-weight: bold; color: #ef4444; margin-top: 4px;">Ksh 0.00</div>
-            </div>
-        </div>
-
-        <div class="billing-grid">
-            <div class="glass-card no-print">
-                <h3 style="margin-top: 0; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;"><i class="fa-solid fa-file-invoice-dollar"></i> Active Invoice Blueprint</h3>
-                
-                <form id="billing-core-form" onsubmit="processInvoiceSubmission(event)">
-                    <div class="flex-group">
-                        <div class="jbs-form-group">
-                            <label>Invoice Token ID</label>
-                            <input type="text" id="inv-id" class="jbs-input-control" readonly style="background: rgba(0,0,0,0.3); color: var(--accent-gold); font-weight: bold;">
-                        </div>
-                        <div class="jbs-form-group">
-                            <label>Due Date Target</label>
-                            <input type="date" id="inv-due-date" class="jbs-input-control" required>
-                        </div>
-                        <div class="jbs-form-group">
-                            <label>Salesperson Handle</label>
-                            <input type="text" id="inv-salesperson" class="jbs-input-control" value="Dr_Kabuthi" required>
-                        </div>
-                    </div>
-
-                    <h4 style="color: var(--accent-blue); margin-bottom: 0.75rem;">Customer Identification Profiles</h4>
-                    <div class="flex-group">
-                        <div class="jbs-form-group">
-                            <label>Full Name / Corporate Entity</label>
-                            <input type="text" id="cust-name" class="jbs-input-control" placeholder="John Doe Logistics Ltd" required>
-                        </div>
-                        <div class="jbs-form-group">
-                            <label>M-Pesa Connected Phone</label>
-                            <input type="text" id="cust-phone" class="jbs-input-control" placeholder="0712345678" required>
-                        </div>
-                    </div>
-
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
-                        <h4 style="color: var(--accent-blue); margin: 0;">Line Item Asset Allocations</h4>
-                        <button type="button" class="jbs-btn-primary" style="font-size: 0.8rem; padding: 6px 12px;" onclick="addInvoiceItemRow()"><i class="fa-solid fa-plus"></i> Append Item Row</button>
-                    </div>
-
-                    <table class="jbs-table invoice-table" style="margin-top: 0.75rem;">
-                        <thead>
-                            <tr>
-                                <th style="width: 35%;">Product Item Catalog</th>
-                                <th style="width: 15%;">Quantity</th>
-                                <th style="width: 20%;">Unit Cost (Ksh)</th>
-                                <th style="width: 15%;">Disc %</th>
-                                <th style="width: 15%;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="invoice-items-tbody">
-                            </tbody>
-                    </table>
-
-                    <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
-                        <div style="width: 300px; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 6px; border: 1px solid var(--glass-border);">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;"><span>Subtotal:</span><span id="calc-subtotal">Ksh 0.00</span></div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color:#f87171;"><span>Discounts Total:</span><span id="calc-discount">- Ksh 0.00</span></div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;"><span>16% VAT Tax:</span><span id="calc-vat">Ksh 0.00</span></div>
-                            <hr style="border:0; border-top:1px solid var(--glass-border);">
-                            <div style="display: flex; justify-content: space-between; font-weight: bold; color: var(--accent-green); font-size: 1.1rem;"><span>Grand Total:</span><span id="calc-grandtotal">Ksh 0.00</span></div>
-                        </div>
-                    </div>
-
-                    <h4 style="color: var(--accent-blue); margin-top: 1rem; margin-bottom: 0.5rem;">Settlement Framework Options</h4>
-                    <div class="flex-group">
-                        <div class="jbs-form-group">
-                            <label>Payment Channel Method</label>
-                            <select id="pay-method" class="jbs-input-control">
-                                <option value="M-Pesa">M-Pesa Express Automation</option>
-                                <option value="Cash">Cash Liquidity Counter</option>
-                                <option value="Bank Transfer">Direct Bank Wire clearing</option>
-                                <option value="Credit Sale">Credit Sale / Account Debtor</option>
-                            </select>
-                        </div>
-                        <div class="jbs-form-group">
-                            <label>Payment Status</label>
-                            <select id="pay-status" class="jbs-input-control">
-                                <option value="Paid">Fully Paid Settlement</option>
-                                <option value="Partially Paid">Partially Paid Ledger Balance</option>
-                                <option value="Unpaid">Unpaid / Open Liability Invoice</option>
-                            </select>
-                        </div>
-                        <div class="jbs-form-group">
-                            <label>Amount Remitted (Ksh)</label>
-                            <input type="number" id="pay-amount-paid" class="jbs-input-control" placeholder="0.00" value="0" required oninput="evaluateSummaryCalculations()">
-                        </div>
-                    </div>
-
-                    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                        <button type="submit" class="jbs-btn-primary" style="width: 100%; font-size: 1rem; padding: 12px;"><i class="fa-solid fa-cloud-arrow-up"></i> Save & Reconcile Transaction</button>
-                    </div>
-                </form>
+            
+            <div class="input-group">
+                <label>Document Layout Mode</label>
+                <select id="documentMode" onchange="switchDocumentMode()">
+                    <option value="Invoice">Invoice Mode</option>
+                    <option value="Delivery Note">Delivery Note Mode</option>
+                    <option value="Inventory Record">Inventory Record Mode</option>
+                </select>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-                <div class="glass-card" style="padding: 1rem; background: #fff; overflow-y: auto; max-height: 520px;">
-                    <div id="printable-invoice-canvas" style="display: block;">
-                        <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 1rem;">
-                            <div>
-                                <h2 style="margin: 0; font-size: 1.5rem; text-transform: uppercase; color: #000;">JOHN BILLING SYSTEM LTD</h2>
-                                <p style="margin: 3px 0; font-size: 0.8rem; color: #334155;">Industrial Area, Block G, Nairobi, KE</p>
-                                <p style="margin: 3px 0; font-size: 0.8rem; color: #334155;">Contact: +254 798 770 325 | support@jbs.co.ke</p>
-                                <p style="margin: 3px 0; font-size: 0.8rem; font-weight: bold;">KRA PIN: P051948102X</p>
-                            </div>
-                            <div style="text-align: right;">
-                                <h1 style="margin: 0; color: #64748b; font-size: 1.75rem; letter-spacing: 2px;">INVOICE</h1>
-                                <div style="margin-top: 10px; font-size: 0.85rem;">
-                                    <div><strong>DOC REF ID:</strong> <span id="view-inv-id" style="color: #ef4444;">--</span></div>
-                                    <div><strong>DATE:</strong> <span id="view-inv-date">--</span></div>
-                                    <div><strong>DUE BY:</strong> <span id="view-inv-due">--</span></div>
-                                </div>
-                            </div>
-                        </div>
+            <div class="btn-group">
+                <button class="btn btn-blue" onclick="appendNewItemRow()">＋ Add Item Line</button>
+                <button class="btn btn-green" onclick="executePDFDownload()">📄 Download Document PDF</button>
+            </div>
+        </header>
 
-                        <div style="margin: 1.5rem 0; font-size: 0.85rem; display: flex; justify-content: space-between;">
-                            <div>
-                                <span style="text-transform: uppercase; color: #64748b; font-size: 0.75rem; font-weight: bold; display: block; margin-bottom: 4px;">Bill To Debtor Account</span>
-                                <strong id="view-cust-name" style="font-size: 1rem; color: #000;">--</strong>
-                                <div id="view-cust-phone" style="color: #334155; margin-top: 2px;">--</div>
-                            </div>
-                            <div style="text-align: right;">
-                                <span style="text-transform: uppercase; color: #64748b; font-size: 0.75rem; font-weight: bold; display: block; margin-bottom: 4px;">Operator Desk</span>
-                                <strong id="view-salesperson">Dr_Kabuthi</strong>
-                            </div>
-                        </div>
-
-                        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 1rem;">
-                            <thead>
-                                <tr style="border-bottom: 2px solid #0f172a; text-align: left;">
-                                    <th style="padding: 8px 0;">Item Manifest Catalog Specification</th>
-                                    <th style="padding: 8px; text-align: center;">Qty</th>
-                                    <th style="padding: 8px; text-align: right;">Unit Rate</th>
-                                    <th style="padding: 8px; text-align: right;">Total Gross</th>
-                                </tr>
-                            </thead>
-                            <tbody id="view-items-tbody">
-                                <tr><td colspan="4" style="text-align: center; padding: 2rem 0; color: #64748b;">No items allocated to current active layout sheet canvas.</td></tr>
-                            </tbody>
-                        </table>
-
-                        <div style="display: flex; justify-content: flex-end; margin-top: 2rem;">
-                            <table style="width: 260px; font-size: 0.85rem; border-top: 1px solid #cbd5e1; padding-top: 0.5rem;">
-                                <tr><td style="padding: 4px 0;">Subtotal Gross:</td><td style="text-align: right;" id="view-subtotal">Ksh 0.00</td></tr>
-                                <tr><td style="padding: 4px 0; color: #dc2626;">Deductions:</td><td style="text-align: right; color: #dc2626;" id="view-discount">- Ksh 0.00</td></tr>
-                                <tr><td style="padding: 4px 0;">VAT Tax (16%):</td><td style="text-align: right;" id="view-vat">Ksh 0.00</td></tr>
-                                <tr style="font-weight: bold; border-top: 2px double #0f172a;"><td style="padding: 6px 0; font-size: 1rem;">NET TOTAL DUE:</td><td style="text-align: right; font-size: 1rem;" id="view-grandtotal">Ksh 0.00</td></tr>
-                                <tr><td style="padding: 4px 0; color: #16a34a;">Amount Paid:</td><td style="text-align: right; color: #16a34a;" id="view-remitted">Ksh 0.00</td></tr>
-                                <tr style="border-top: 1px solid #0f172a; font-weight: bold;"><td style="padding: 4px 0;">Balance Due:</td><td style="text-align: right;" id="view-balance">Ksh 0.00</td></tr>
-                            </table>
-                        </div>
-
-                        <div style="margin-top: 3.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; font-size: 0.75rem;">
-                            <div>
-                                <div style="border-bottom: 1px dashed #000; height: 35px;"></div>
-                                <p style="margin: 4px 0; text-align: center; font-weight: bold;">Customer Authorization Sign / Date</p>
-                            </div>
-                            <div>
-                                <div style="border-bottom: 1px dashed #000; height: 35px; position: relative;">
-                                    <span style="position: absolute; bottom: 2px; right: 10px; color: rgba(15,23,42,0.15); font-weight: bold; font-family: sans-serif; letter-spacing: 1px; font-size: 0.65rem;">JBS STAMP SECURE</span>
-                                </div>
-                                <p style="margin: 4px 0; text-align: center; font-weight: bold;">Authorized Signature / Company Stamp</p>
-                            </div>
-                        </div>
-                    </div>
+        <div class="print-header-stamp" id="printHeaderStamp">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h2 style="font-size: 1.5rem; letter-spacing: -0.5px;">JOHN BILLING SYSTEM (JBS)</h2>
+                    <p style="font-size: 0.85rem; color: #555; margin-top: 4px;">Ongata Rongai, Nairobi, Kenya</p>
+                    <p style="font-size: 0.85rem; color: #555;">Date: <span id="currentDatePlaceholder"></span></p>
                 </div>
-
-                <div class="glass-card no-print" style="display: flex; gap: 0.75rem; padding: 0.75rem;">
-                    <button class="jbs-btn-primary" style="background: #475569; width: 100%;" onclick="window.print()"><i class="fa-solid fa-print"></i> Execute Hardcopy Print</button>
-                    <button class="jbs-btn-primary" style="background: #16a34a; width: 100%;" onclick="triggerClientSidePdfDownload()"><i class="fa-solid fa-download"></i> Save As PDF Document</button>
-                </div>
-
-                <div class="glass-card no-print">
-                    <h3 style="margin-top: 0; font-size: 1rem;"><i class="fa-solid fa-clock-rotate-left"></i> Historic Ledger Archives</h3>
-                    <div style="max-height: 180px; overflow-y: auto; font-size: 0.85rem;" id="invoice-history-list">
-                        </div>
+                <div>
+                    <div class="print-document-type-title" id="printDocTitle">INVOICE</div>
+                    <p style="text-align: right; font-size: 0.9rem;">Ref ID: <span id="documentSerialID"></span></p>
+                    <p style="text-align: right; font-size: 0.9rem; font-weight: bold; margin-top: 5px;">Client: <span id="printClientName">Walk-in Client</span></p>
                 </div>
             </div>
         </div>
-    </main>
+
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 45%;">Item / Description</th>
+                        <th style="width: 15%; text-align: right;" id="colHeaderQty">Qty</th>
+                        <th style="width: 20%; text-align: right;" id="colHeaderPrice">Unit Price (KES)</th>
+                        <th style="width: 15%; text-align: right;" id="colHeaderTotal">Total (KES)</th>
+                        <th style="width: 5%; text-align: center;"></th>
+                    </tr>
+                </thead>
+                <tbody id="billing-items-tbody">
+                    <tr>
+                        <td><input type="text" class="table-input" value="Premium Stock Feed Concentrate"></td>
+                        <td><input type="number" class="table-input" value="10" style="text-align: right;" oninput="calculateRowTotals()"></td>
+                        <td><input type="number" class="table-input" value="2500" style="text-align: right;" oninput="calculateRowTotals()"></td>
+                        <td style="text-align: right; font-weight: 500;" class="row-total-cell">25,000.00</td>
+                        <td style="text-align: center;"><button class="remove-row-btn" onclick="removeLineRow(this)">✕</button></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="billing-footer-summary" id="summarySectionPanel">
+                <div class="summary-box">
+                    <div class="summary-row">
+                        <span>Subtotal:</span>
+                        <span id="txtSubtotal">KES 25,000.00</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>VAT / Tax (16%):</span>
+                        <span id="txtTax">KES 4,000.00</span>
+                    </div>
+                    <div class="summary-row grand-total">
+                        <span>Grand Total:</span>
+                        <span id="txtGrandTotal">KES 29,000.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
 
     <script>
-  function processCheckoutBackend() {
-    // 1. Gather your row item array metrics from your current HTML table elements
-    const invoicePayload = {
-        customer_name: document.getElementById('customerNameField')?.value || "Walk-in Customer",
-        amount_paid: document.getElementById('amountPaidField')?.value || 0.0,
-        items: [
-            { item_name: "Example Inventory Item A", quantity: 2, price: 150.00 },
-            { item_name: "Example Inventory Item B", quantity: 1, price: 450.00 }
-        ]
+        // Set date string automatically
+        document.getElementById('currentDatePlaceholder').innerText = new Date().toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' });
+        document.getElementById('documentSerialID').innerText = 'JBS-' + Math.floor(100000 + Math.random() * 900000);
+
+        function appendNewItemRow() {
+            const tbody = document.getElementById('billing-items-tbody');
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input type="text" class="table-input" placeholder="Enter product specification description..."></td>
+                <td><input type="number" class="table-input" value="1" style="text-align: right;" oninput="calculateRowTotals()"></td>
+                <td><input type="number" class="table-input" value="0" style="text-align: right;" oninput="calculateRowTotals()"></td>
+                <td style="text-align: right; font-weight: 500;" class="row-total-cell">0.00</td>
+                <td style="text-align: center;"><button class="remove-row-btn" onclick="removeLineRow(this)">✕</button></td>
+            `;
+            tbody.appendChild(row);
+            calculateRowTotals();
+        }
+
+        function removeLineRow(btn) {
+            btn.closest('tr').remove();
+            calculateRowTotals();
+        }
+
+        function calculateRowTotals() {
+            let subtotal = 0;
+            const rows = document.querySelectorAll('#billing-items-tbody tr');
+            
+            rows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const qty = parseFloat(inputs[1]?.value) || 0;
+                const price = parseFloat(inputs[2]?.value) || 0;
+                const total = qty * price;
+                
+                subtotal += total;
+                
+                const totalCell = row.querySelector('.row-total-cell');
+                if (totalCell) totalCell.innerText = total.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            });
+
+            const tax = subtotal * 0.16;
+            const grandTotal = subtotal + tax;
+
+            document.getElementById('txtSubtotal').innerText = 'KES ' + subtotal.toLocaleString('en-KE', { minimumFractionDigits: 2 });
+            document.getElementById('txtTax').innerText = 'KES ' + tax.toLocaleString('en-KE', { minimumFractionDigits: 2 });
+            document.getElementById('txtGrandTotal').innerText = 'KES ' + grandTotal.toLocaleString('en-KE', { minimumFractionDigits: 2 });
+        }
+
+        function syncPrintHeader() {
+            document.getElementById('printClientName').innerText = document.getElementById('customerName').value;
+        }
+
+        function switchDocumentMode() {
+            const mode = document.getElementById('documentMode').value;
+            document.getElementById('printDocTitle').innerText = mode;
+
+            const priceHeader = document.getElementById('colHeaderPrice');
+            const totalHeader = document.getElementById('colHeaderTotal');
+            const summaryPanel = document.getElementById('summarySectionPanel');
+            const rows = document.querySelectorAll('#billing-items-tbody tr');
+
+            if (mode === "Delivery Note" || mode === "Inventory Record") {
+                // Hide monetary metrics columns for stock balancing operations
+                priceHeader.style.display = 'none';
+                totalHeader.style.display = 'none';
+                summaryPanel.style.display = 'none';
+                rows.forEach(row => {
+                    const inputs = row.querySelectorAll('input');
+                    if(inputs[2]) inputs[2].parentElement.style.display = 'none';
+                    const totalCell = row.querySelector('.row-total-cell');
+                    if(totalCell) totalCell.style.display = 'none';
+                });
+            } else {
+                // Show monetary metrics for traditional Invoice billing processing
+                priceHeader.style.display = '';
+                totalHeader.style.display = '';
+                summaryPanel.style.display = '';
+                rows.forEach(row => {
+                    const inputs = row.querySelectorAll('input');
+                    if(inputs[2]) inputs[2].parentElement.style.display = '';
+                    const totalCell = row.querySelector('.row-total-cell');
+                    if(totalCell) totalCell.style.display = '';
+                });
+                calculateRowTotals();
+            }
+        }
+
+        function executePDFDownload() {
+            syncPrintHeader();
+            // Call system local driver window rendering pipeline directly
+            window.print();
+        }
+        function executePDFDownload() {
+    syncPrintHeader();
+    
+    // 1. Map all rows from the HTML table body into a structural array
+    const rows = document.querySelectorAll('#billing-items-tbody tr');
+    const itemsArray = [];
+    
+    rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        if (inputs[0] && inputs[0].value.trim() !== "") {
+            itemsArray.push({
+                description: inputs[0].value,
+                quantity: parseFloat(inputs[1]?.value) || 0,
+                price: parseFloat(inputs[2]?.value) || 0
+            });
+        }
+    });
+
+    // 2. Build the data payload object matching the backend API requirements
+    const payload = {
+        document_type: document.getElementById('documentMode').value,
+        customer_name: document.getElementById('customerName').value,
+        reference_id: document.getElementById('documentSerialID').innerText,
+        items: itemsArray
     };
 
-    // 2. Dispatch the metrics payload to Python via relative endpoints
-    fetch('/api/create-invoice', {
+    // 3. Dispatch data upstream via relative network pathway
+    fetch('/api/save-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(invoicePayload)
+        body: JSON.stringify(payload)
     })
     .then(res => res.json())
     .then(data => {
-        if(data.success) {
-            alert(`Transaction Saved! Invoice Serial ID: ${data.invoice_number}`);
-            // Launch receipt layout rendering logic here
-        }
+        console.log("Server logged state:", data.message);
+        // 4. Fire the local device window driver view directly for PDF compilation
+        window.print();
     })
-    .catch(err => console.error("Billing interface network layer communication failure:", err));
+    .catch(err => {
+        console.error("Pipeline communication timeout, loading PDF anyway.", err);
+        window.print();
+    });
 }
     </script>
 </body>

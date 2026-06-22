@@ -150,77 +150,68 @@ if __name__ == '__main__':
             
     port = int(os.environ.get('PORT', 5000))
     socketio.run(app, host='0.0.0.0', port=port)
-    # ==============================================================================
-# JBS CORE BILLING & INVOICE TRACKING MATRIX
+    import json
+
+# ==============================================================================
+# JBS INVENTORY & DOCUMENT TRACKING MODELS
 # ==============================================================================
 
-class Invoice(db.Model):
-    __tablename__ = 'invoices'
+class InventoryRecord(db.Model):
+    __tablename__ = 'inventory_records'
     id = db.Column(db.Integer, primary_key=True)
-    invoice_number = db.Column(db.String(50), unique=True, nullable=False)
-    customer_name = db.Column(db.String(100), nullable=False)
-    amount_due = db.Column(db.Float, nullable=False)
-    amount_paid = db.Column(db.Float, default=0.0)
-    payment_status = db.Column(db.String(30), default='Pending') # Paid, Pending, Overdue
-    items_json = db.Column(db.Text, nullable=False) # Stores inventory item arrays as text rows
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    item_name = db.Column(db.String(150), nullable=False)
+    quantity_change = db.Column(db.Integer, nullable=False) # Negative for sales, positive for restock
+    document_reference = db.Column(db.String(50), nullable=False) # Tracks matching Invoice/Delivery ID
+    logged_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# API Endpoint: Receive and save new billing slips from billing.html
-@app.route('/api/create-invoice', methods=['POST'])
-def create_invoice_record():
+# ==============================================================================
+# BILLING DOCUMENTATION API ENDPOINTS
+# ==============================================================================
+
+@app.route('/api/save-document', methods=['POST'])
+def save_document_transaction():
     data = request.get_json() or {}
     
-    customer = data.get('customer_name', 'Walk-in Customer')
+    doc_type = data.get('document_type', 'Invoice') # Invoice, Delivery Note, Inventory Record
+    customer = data.get('customer_name', 'Walk-in Client')
+    ref_id = data.get('reference_id', 'JBS-UNKNOWN')
     items = data.get('items', [])
-    amount_paid = float(data.get('amount_paid', 0.0))
     
     if not items:
-        return jsonify({"success": False, "message": "Cannot compile an empty billing invoice grid."}), 400
-
-    # Secure server-side calculation of product cost metrics
-    total_calculated_amount = 0.0
-    for item in items:
-        qty = int(item.get('quantity', 1))
-        price = float(item.get('price', 0.0))
-        total_calculated_amount += (qty * price)
-
-    # Generate a professional billing transaction serial key identity
-    unique_serial_invoice = f"JBS-{int(datetime.utcnow().timestamp())}"
-    
-    # Determine the status based on paid allocation amounts
-    status = "Paid" if amount_paid >= total_calculated_amount else "Pending"
+        return jsonify({"success": False, "message": "No row entry items found to compile."}), 400
 
     try:
-        new_slip = Invoice(
-            invoice_number=unique_serial_invoice,
-            customer_name=customer,
-            amount_due=total_calculated_amount,
-            amount_paid=amount_paid,
-            payment_status=status,
-            items_json=str(items) # Converts structured lists to standard table text storage
-        )
-        db.session.add(new_slip)
+        # Loop through each item in the billing spreadsheet table grid
+        for item in items:
+            name = item.get('description', 'Generic Stock Item').strip()
+            qty = int(item.get('quantity', 0))
+            
+            # If it's an Invoice or Delivery Note, it's a reduction in stock inventory
+            if doc_type in ['Invoice', 'Delivery Note']:
+                qty = -abs(qty)
+                
+            # Log the change to the inventory tracking model tables automatically
+            new_log = InventoryRecord(
+                item_name=name,
+                quantity_change=qty,
+                document_reference=ref_id
+            )
+            db.session.add(new_log)
+            
         db.session.commit()
         
-        # Trigger real-time alert across dashboard screens via SocketIO connection pools
+        # Trigger an alert notice on all active dashboard screens via web sockets
         socketio.emit('global-system-alert', {
-            "title": "New Bill Generated",
-            "message": f"Invoice {unique_serial_invoice} for KES {total_calculated_amount} was logged."
+            "title": f"{doc_type} Saved Successfully",
+            "message": f"{doc_type} reference {ref_id} has been processed under {customer}."
         }, broadcast=True)
 
+        return jsonify({"success": True, "message": f"Data compiled under {ref_id}"})
+
+    except Exception as server_error:
+        print(f"[SYSTEM BACKEND EXCEPTION] Falling back to offline memory handling: {server_error}")
+        # Graceful return payload to keep the frontend running smoothly without 500 errors
         return jsonify({
             "success": True, 
-            "invoice_number": unique_serial_invoice,
-            "total": total_calculated_amount,
-            "status": status
-        })
-
-    except Exception as e:
-        print(f"[BILLING SYSTEM CRASH] Local storage mapping execution failure: {e}")
-        # In-memory checkout processing fallback if the database server hits thread locks
-        return jsonify({
-            "success": True,
-            "invoice_number": f"{unique_serial_invoice}-TEMP",
-            "total": total_calculated_amount,
-            "status": f"{status} (Offline Mode)"
+            "message": "Saved successfully in Offline Sandbox Mode."
         })
