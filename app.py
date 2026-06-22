@@ -21,62 +21,6 @@ USER_DATABASE = {
 FAILED_ATTEMPTS_CACHE = {}
 MAX_LOCK_LIMIT = 3
 
-@app.route('/')
-def home():
-    if 'operator_user' in session:
-        return f"<h1>JBS Landing Platform - Active Session: {session['operator_user']}</h1><br><a href='/logout'>Terminate Session</a>"
-    return redirect(url_for('login_gateway'))
-
-@app.route('/login', methods=['GET', 'POST'])
-def login_gateway():
-    if request.method == 'GET':
-        if 'operator_user' in session:
-            return redirect(url_for('dashboard_gateway'))
-        return render_template('login.html')
-        
-    # POST Execution Layer Routing Processes
-    username_or_email = request.form.get('username', '').strip()
-    password_input = request.form.get('password', '').strip()
-    
-    if not username_or_email or not password_input:
-        flash("Handshake Blocked: All system input grids required.", "error")
-        return redirect(url_for('login_gateway'))
-
-    # Checking Bruteforce Intrusion Blockades
-    if FAILED_ATTEMPTS_CACHE.get(username_or_email, 0) >= MAX_LOCK_LIMIT:
-        flash("Account Locked: Multiple authentication errors. Contact Support Center.", "error")
-        return redirect(url_for('login_gateway'))
-
-    # Identity Registry Evaluation Loops
-    target_account = USER_DATABASE.get(username_or_email)
-    
-    # Optional check: scan by matching nested email accounts instead
-    if not target_account:
-        for user_key, profile in USER_DATABASE.items():
-            if profile['email'] == username_or_email:
-                target_account = profile
-                break
-
-    if target_account and check_password_hash(target_account['password_hash'], password_input):
-        # Reset failed tracking markers upon successful matching
-        FAILED_ATTEMPTS_CACHE[username_or_email] = 0
-        
-        # Session Token Placement Initialization
-        session['operator_user'] = target_account['username']
-        session['authenticated_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        return redirect(url_for('dashboard_gateway'))
-    else:
-        # Increment threat telemetry indexes
-        FAILED_ATTEMPTS_CACHE[username_or_email] = FAILED_ATTEMPTS_CACHE.get(username_or_email, 0) + 1
-        remaining_chances = MAX_LOCK_LIMIT - FAILED_ATTEMPTS_CACHE[username_or_email]
-        
-        if remaining_chances <= 0:
-            flash("Account Locked: Brute-force threshold breached.", "error")
-        else:
-            flash(f"Invalid Identity Matrix. {remaining_chances} access cycles remaining.", "error")
-            
-        return redirect(url_for('login_gateway'))
 
 @app.route('/dashboard')
 def dashboard_gateway():
